@@ -1,0 +1,18 @@
+PEÕES EM DUELO — como pôr o jogo online (Firebase, grátis)
+
+1) Criar o projeto
+   - Vai a https://console.firebase.google.com e cria um projeto (ex.: peoes-em-duelo). O Google Analytics não é preciso.
+   - No menu: Build > Realtime Database > Create database > escolhe "europe-west1" > Start in locked mode.
+   - Em Definições do projeto (roda dentada) > As tuas apps > ícone </> (Web) > regista a app.
+     Copia os valores de firebaseConfig para o ficheiro public/firebase-config.js
+     (confirma que o databaseURL está preenchido).
+
+2) Publicar (no terminal, dentro desta pasta)
+   npm install -g firebase-tools      (só se ainda não tiveres)
+   firebase login
+   firebase use --add                 (escolhe o projeto que criaste)
+   firebase deploy
+
+   No fim aparece o link (https://<projeto>.web.app). Partilha-o com os amigos.
+
+Testar sem Firebase: abre o jogo com ?local no fim do link, em vários separadores do mesmo browser.
