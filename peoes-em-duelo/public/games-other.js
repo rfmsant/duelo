@@ -1,9 +1,9 @@
 /* Games played on one duelist's phone, and real-life games judged by the others */
-const CATS=['Marcas de carros','Países da Europa','Frutas','Animais com quatro patas','Clubes de futebol portugueses','Coisas que há numa cozinha','Capitais do mundo','Profissões','Cantores portugueses','Desportos','Coisas amarelas','Marcas de roupa','Doces portugueses','Cidades portuguesas','Partes do corpo','Instrumentos musicais','Coisas para levar para a praia','Bebidas','Séries de televisão','Coisas que há numa casa de banho'];
-const RHYMES=['pão','amor','cão','janela','canção','limão','sol','festa','mar','coração','gato','bola','vida','noite','carro','café','flor','pé'];
+//CA=['Marcas de carros','Países da Europa','Frutas','Animais com quatro patas','Clubes de futebol portugueses','Coisas que há numa cozinha','Capitais do mundo','Profissões','Cantores portugueses','Desportos','Coisas amarelas','Marcas de roupa','Doces portugueses','Cidades portuguesas','Partes do corpo','Instrumentos musicais','Coisas para levar para a praia','Bebidas','Séries de televisão','Coisas que há numa casa de banho'];
+//RH=['pão','amor','cão','janela','canção','limão','sol','festa','mar','coração','gato','bola','vida','noite','carro','café','flor','pé'];
 const LETTERS='ABCDFGLMPRST'.split('');
 const WORDS=['Astronauta','Pizza','Girafa','Bicicleta','Dentista','Surfista','Elevador','Vampiro','Pescador','Pinguim','Bombeiro','Guarda-chuva','Selfie','Ginásio','Polvo','Avião','Árvore de Natal','Robô','Castelo','Tubarão'];
-const TWISTERS=['O rato roeu a rolha da garrafa do rei da Rússia','Três pratos de trigo para três tigres tristes','O tempo perguntou ao tempo quanto tempo o tempo tem','Num ninho de mafagafos há sete mafagafinhos','A aranha arranha a rã, a rã arranha a aranha','O peito do pé do Pedro é preto'];
+//TW=['O rato roeu a rolha da garrafa do rei da Rússia','Três pratos de trigo para três tigres tristes','O tempo perguntou ao tempo quanto tempo o tempo tem','Num ninho de mafagafos há sete mafagafinhos','A aranha arranha a rã, a rã arranha a aranha','O peito do pé do Pedro é preto'];
 
 /* engine for one-phone duels (from version 1) */
 function runPhone(g,A,B,cb){
@@ -54,21 +54,11 @@ P_('adivinha','🔍','Número Secreto','O telemóvel pensa num número de 1 a 10
     if(v===n){over=true;b.classList.add('ok');gl.innerHTML=`Era o ${n}! <b>${esc(P[cur].name)}</b> acertou.`;ctx.after(cur);return}
     if(v<n)lo=v+1;else hi=v-1;cur=1-cur;draw(`${v}? Mais ${v<n?'alto ⬆':'baixo ⬇'}`)});
   draw('Adivinhem o número secreto.')}),
-P_('categorias','🗂️','Categorias','À vez, digam uma coisa da categoria. Cinco segundos por jogada, sem repetir. Quem ficar sem resposta perde.',ctx=>turnGame(ctx,pick(CATS))),
-P_('rimas','🎤','Rimas','À vez, digam uma palavra que rime com a palavra dada. Cinco segundos por jogada, sem repetir.',ctx=>turnGame(ctx,`Rimas com «${pick(RHYMES)}»`)),
 P_('letra','🔤','Letra Inicial','À vez, digam palavras começadas pela letra sorteada. Cinco segundos por jogada, sem repetir.',ctx=>turnGame(ctx,`Palavras começadas por ${pick(LETTERS)}`)),
 ];
 const F_=(id,icon,name,rules,o={})=>Object.assign({id,icon,name,kind:'ref',rules},o);
 const REF=[
-F_('olhar','👁️','Concurso de Olhares','Olhem-se nos olhos. Quem pestanejar, desviar o olhar ou rir primeiro perde.'),
-F_('bluff','🃏','Bluff','Cada um diz três frases sobre si: duas verdades e uma mentira. O outro tenta apanhar a mentira. Se os dois acertarem ou falharem, decide o público.'),
-F_('polegar','👍','Guerra de Polegares','Agarrem as mãos e tentem prender o polegar do outro durante 3 segundos. Melhor de três.'),
-F_('naoteris','😐','Não Te Rias','Cada um tem 30 segundos para fazer o outro rir, sem tocar. Quem se rir primeiro perde.',{timer:60}),
-F_('trava','👅','Trava-Línguas','Digam a frase três vezes seguidas, o mais depressa possível. O público decide quem se enrolou menos.',{text:s=>`Digam três vezes seguidas, bem depressa:<q>${TWISTERS[s%TWISTERS.length]}</q>`}),
 F_('flamingo','🦩','Flamingo','De pé, só num pé e de olhos fechados. Quem pousar o pé ou abrir os olhos primeiro perde.'),
-F_('estatua','🗿','Estátua','Fiquem imóveis durante 30 segundos. O público pode tentar fazer-vos mexer, sem tocar. Quem se mexer perde.',{timer:30}),
-F_('braco','💪','Braço de Ferro','Cotovelos na mesa, mãos dadas. Ao sinal, força! Quem encostar a mão do outro à mesa ganha.'),
-F_('simnao','🚫','Nem Sim Nem Não','O público faz perguntas rápidas a um de cada vez, 30 segundos cada. É proibido dizer «sim» ou «não». Quem escorregar perde.',{timer:30}),
 F_('desenho','✏️','Desenho Cego','Cada um vê a sua palavra no telemóvel e desenha-a num papel de olhos fechados. O desenho que o público adivinhar primeiro ganha.',{timer:30,secret:WORDS}),
 ];
 const GAMES=[...SOLO,...PHONE,...REF];

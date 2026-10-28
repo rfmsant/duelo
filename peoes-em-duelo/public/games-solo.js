@@ -208,17 +208,30 @@ S_('grid','🟨','Grelha','high','pts','Decora os quadrados que acendem e toca n
       if(lit.has(+b.dataset.i)){b.classList.add('hit');found++;if(found===n){can=false;lvl++;a.show(lvl);a.t(round,450)}}
       else{can=false;b.classList.add('miss');a.el.querySelectorAll('[data-i]').forEach(x=>{if(lit.has(+x.dataset.i)&&!x.classList.contains('hit'))x.classList.add('lit')});a.t(()=>a.done(lvl),1200)}}))};
   round()}),
-S_('cups','🥤','Bola e Copos','high','pts','Segue o copo que tem a bola. Cada nível baralha mais depressa. Um erro e acabou.',a=>{
+S_('cups','🥤','Bola e Copos','high','pts','Segue o copo que tem a bola. Cada nível baralha mais depressa e, a partir do nível 3, a bola pode saltar para outro copo. Um erro e acabou.',a=>{
   let lvl=0;a.show(0);
-  a.el.innerHTML=`<p class="hint" id="ch">Olha bem para a bola</p><div class="cups" id="cw"><div class="ball" id="ball"></div>${[0,1,2].map(i=>`<button class="cup" data-c="${i}" aria-label="Copo ${i+1}"><i></i></button>`).join('')}</div>`;
-  const cups=[...a.el.querySelectorAll('.cup')],ball=$('#ball');const X=[5,35,65];let slot=[0,1,2],ballCup=0,can=false;
-  const place=dur=>cups.forEach((c,i)=>{c.style.transitionDuration=dur+'ms';c.style.left=X[slot[i]]+'%'});
-  const round=()=>{ballCup=Math.floor(a.rnd()*3);place(0);ball.style.transitionDuration='0ms';ball.style.left=(X[slot[ballCup]]+15)+'%';ball.style.opacity=1;
-    cups[ballCup].classList.add('up');$('#ch').textContent=`Nível ${lvl+1} · olha bem para a bola`;
-    a.t(()=>{cups[ballCup].classList.remove('up');a.t(()=>{ball.style.opacity=0;const swaps=3+lvl*2,dur=Math.max(170,420-lvl*40);let k=0;
-      const sw=()=>{if(k++>=swaps){can=true;$('#ch').textContent='Onde está a bola?';return}let i=Math.floor(a.rnd()*3),j=(i+1+Math.floor(a.rnd()*2))%3;[slot[i],slot[j]]=[slot[j],slot[i]];place(dur);a.t(sw,dur+30)};sw()},350)},1000)};
-  cups.forEach((c,i)=>on(c,()=>{if(!can)return;can=false;ball.style.left=(X[slot[ballCup]]+15)+'%';ball.style.opacity=1;cups[ballCup].classList.add('up');if(i!==ballCup)c.classList.add('up');
-    if(i===ballCup){lvl++;a.show(lvl);$('#ch').textContent='Boa!';a.t(()=>{cups.forEach(x=>x.classList.remove('up'));a.t(round,350)},800)}else{$('#ch').textContent='Errado!';a.t(()=>a.done(lvl),1100)}}));
+  a.el.innerHTML=`<p class="hint" id="ch">Olha bem para a bola</p><div class="cups"><div class="tbl"></div><div class="ball" id="ball"></div>${[0,1,2].map(i=>`<button class="cup" data-c="${i}" aria-label="Copo ${i+1}"><span class="cw"><span class="cb"></span><span class="ct"></span><span class="cr"></span></span></button>`).join('')}</div>`;
+  const cups=[...a.el.querySelectorAll('.cup')],ball=$('#ball'),ch=$('#ch');
+  const SL=[{x:17,y:0,s:.8,z:2},{x:50,y:34,s:1.08,z:6},{x:83,y:0,s:.8,z:2}];
+  let slot=[0,1,2],ballCup=0,can=false;
+  const put=(el,sl,dur,isBall)=>{const q=SL[sl];el.style.transitionDuration=dur+'ms';el.style.left=q.x+'%';el.style.transform=`translate(-50%,${q.y}px) scale(${q.s})`;el.style.zIndex=isBall?q.z-1:q.z};
+  const place=dur=>{cups.forEach((c,i)=>put(c,slot[i],dur));put(ball,slot[ballCup],dur,true)};
+  const lift=(ids,cls,on_)=>ids.forEach(i=>cups[i].classList.toggle(cls,on_));
+  const jump=(next)=>{const from=ballCup;let to=(from+1+Math.floor(a.rnd()*2))%3;
+    lift([from,to],'peek',true);ball.style.opacity=1;place(0);
+    a.t(()=>{const A=SL[slot[from]],B=SL[slot[to]];ball.style.zIndex=9;
+      ball.animate([{left:A.x+'%',transform:`translate(-50%,${A.y}px) scale(${A.s})`},{left:(A.x+B.x)/2+'%',transform:`translate(-50%,${(A.y+B.y)/2-46}px) scale(${(A.s+B.s)/2})`},{left:B.x+'%',transform:`translate(-50%,${B.y}px) scale(${B.s})`}],{duration:520,easing:'ease-in-out'});
+      ballCup=to;put(ball,slot[to],0,true);
+      a.t(()=>{lift([from,to],'peek',false);a.t(()=>{ball.style.opacity=0;next()},320)},560)},330)};
+  const round=()=>{ballCup=Math.floor(a.rnd()*3);ball.style.opacity=1;place(0);lift([0,1,2],'up',false);cups[ballCup].classList.add('up');ch.textContent=`Nível ${lvl+1} · olha bem para a bola`;
+    a.t(()=>{cups[ballCup].classList.remove('up');a.t(()=>{ball.style.opacity=0;const n=3+lvl*2,dur=Math.max(170,430-lvl*38);
+      const jumps=lvl>=2?new Set([Math.floor(a.rnd()*n)].concat(lvl>=5?[Math.floor(a.rnd()*n)]:[])):new Set();let k=0;
+      const step=()=>{if(k>=n){can=true;ch.textContent='Onde está a bola?';return}const cur=k++;
+        if(jumps.has(cur)){jumps.delete(cur);return jump(step)}
+        const i=Math.floor(a.rnd()*3),j=(i+1+Math.floor(a.rnd()*2))%3;const ci=slot.indexOf(i),cj=slot.indexOf(j);[slot[ci],slot[cj]]=[slot[cj],slot[ci]];place(dur);a.t(step,dur+40)};
+      step()},380)},1100)};
+  cups.forEach((c,i)=>on(c,()=>{if(!can)return;can=false;ball.style.opacity=1;place(0);cups[ballCup].classList.add('up');if(i!==ballCup)c.classList.add('up');
+    if(i===ballCup){lvl++;a.show(lvl);ch.textContent='Boa!';a.t(round,1100)}else{ch.textContent='Errado!';a.t(()=>a.done(lvl),1200)}}));
   round()}),
 /* ---- arcade ---- */
 S_('flap','🐤','Flap','high','pts','Toca para voar. Passa entre os pilares sem bater.',a=>{
@@ -257,7 +270,7 @@ S_('zig','〰️','Zigue-Zague','high','pts','A bola anda sozinha. Toca para mud
     c.strokeStyle='#e0a800';c.lineWidth=w+8;c.beginPath();nodes.forEach((n,i)=>i?c.lineTo(n[0],sy(n[1])+6):c.moveTo(n[0],sy(n[1])+6));c.stroke();
     c.strokeStyle='#ffd23f';c.lineWidth=w;c.beginPath();nodes.forEach((n,i)=>i?c.lineTo(n[0],sy(n[1])):c.moveTo(n[0],sy(n[1])));c.stroke();
     c.beginPath();c.arc(bx,H*.72+fall*300,11*(1-Math.min(.7,fall)),0,Math.PI*2);c.fillStyle='#ff5d73';c.fill()})}),
-S_('chop','🎋','Ninja Corta-Bambu','high','pts','Toca do lado esquerdo ou direito para cortar o bambu. Foge dos ramos e não deixes a barra de tempo acabar.',a=>{
+S_('chop','🎋','Ninja Corta-Bambu','high','pts','Toca na metade ESQUERDA ou DIREITA do ecrã: o ninja salta para esse lado e corta. Foge dos ramos verdes e não deixes a barra de tempo acabar.',a=>{
   const {c,W,H}=a.canvas();const segH=64,tw=64,cx=W/2;let br=[0,0],side=-1,sc=0,time=1,over=false,hit=0;
   const nb=()=>{const last=br[br.length-1];br.push(last!==0?0:(a.rnd()<.6?(a.rnd()<.5?-1:1):0))};while(br.length<12)nb();a.show(0);
   a.el.addEventListener('pointerdown',e=>{e.preventDefault();if(over)return;const r=a.el.getBoundingClientRect();side=e.clientX-r.left<r.width/2?-1:1;
@@ -270,6 +283,8 @@ S_('chop','🎋','Ninja Corta-Bambu','high','pts','Toca do lado esquerdo ou dire
     c.fillStyle='#5a3a1e';c.fillRect(cx-tw/2-10,base,tw+20,12);
     const nx=cx+side*(tw/2+34);c.fillStyle=over?'#ff5d73':'#22103f';c.beginPath();c.arc(nx,base-28,20,0,Math.PI*2);c.fill();c.fillStyle='#ff5d73';c.fillRect(nx-20,base-34,40,7);
     if(hit){c.fillStyle='#fff';c.fillRect(cx+side*tw/2-(side>0?0:30),base-40,30,4)}
+    c.save();c.globalAlpha=sc<4?.9:.28;c.fillStyle='rgba(255,255,255,.06)';c.fillRect(0,H-150,W/2-6,150);c.fillRect(W/2+6,H-150,W/2-6,150);
+    c.fillStyle='#fff';c.font='800 22px Bricolage Grotesque,sans-serif';c.textAlign='center';c.fillText('◀ TOCA',W*.22,H-22);c.fillText('TOCA ▶',W*.78,H-22);c.restore();
     c.fillStyle='#22103f';c.fillRect(W*.2,18,W*.6,12);c.fillStyle=time>.3?'#c6ff3d':'#ff5d73';c.fillRect(W*.2,18,W*.6*Math.max(0,time),12)})}),
 S_('keepup','⚪','Não Deixes Cair','high','pts','Toca na bola para a manter no ar. Se tocar no chão, acabou.',a=>{
   const {c,W,H}=a.canvas();const r=32;let x=W/2,y=H*.3,vx=(a.rnd()-.5)*60,vy=0,sc=0,over=false;a.show(0);
