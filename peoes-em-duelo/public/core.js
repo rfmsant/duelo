@@ -12,7 +12,15 @@ const ss={get:k=>{try{return JSON.parse(sessionStorage.getItem(k))}catch(e){retu
 const ls={get:k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 /* seeded random: same seed → same level for both duelists */
 function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-function pawn(c,s=48){return `<svg width="${s}" height="${Math.round(s*1.25)}" viewBox="0 0 40 50" aria-hidden="true"><ellipse cx="20" cy="46.5" rx="16" ry="3.5" fill="rgba(0,0,0,.35)"/><path d="M13 44 L15.5 24 H24.5 L27 44 Z" fill="${c}"/><rect x="10" y="40.5" width="20" height="5.5" rx="2.75" fill="${c}"/><path d="M20 24 H24.5 L27 44 H20 Z" fill="rgba(0,0,0,.14)"/><ellipse cx="20" cy="24" rx="8.5" ry="2.8" fill="rgba(255,255,255,.6)"/><circle cx="20" cy="14" r="8.5" fill="${c}"/><circle cx="17" cy="10.5" r="2.6" fill="rgba(255,255,255,.55)"/></svg>`}
+/* glossy 3D pawn */
+function pawn(c,s=48){const id='p'+c.slice(1);return `<svg width="${s}" height="${Math.round(s*1.25)}" viewBox="0 0 40 50" aria-hidden="true" class="pawn"><defs>
+<radialGradient id="h${id}" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".25" stop-color="${c}"/><stop offset="1" stop-color="${c}" stop-opacity=".75"/></radialGradient>
+<linearGradient id="b${id}" x1="0" x2="1"><stop offset="0" stop-color="${c}" stop-opacity=".7"/><stop offset=".35" stop-color="#fff" stop-opacity=".55"/><stop offset=".5" stop-color="${c}"/><stop offset="1" stop-color="${c}" stop-opacity=".6"/></linearGradient></defs>
+<ellipse cx="20" cy="46.8" rx="15" ry="3" fill="rgba(0,0,0,.18)"/><path d="M13 44 L15.6 24 H24.4 L27 44 Z" fill="url(#b${id})"/><rect x="10" y="40.5" width="20" height="5.5" rx="2.75" fill="url(#b${id})"/>
+<ellipse cx="20" cy="24" rx="8.5" ry="2.6" fill="${c}"/><ellipse cx="20" cy="23.6" rx="8.5" ry="2.2" fill="#fff" opacity=".45"/><circle cx="20" cy="14" r="8.6" fill="url(#h${id})"/></svg>`}
+/* each game gets its own vivid gradient (used behind the game screen and on its tile) */
+const GRADS=['linear-gradient(160deg,#ff5f6d,#ffc371)','linear-gradient(160deg,#36d1dc,#5b86e5)','linear-gradient(160deg,#a18cd1,#fbc2eb)','linear-gradient(160deg,#43e97b,#38f9d7)','linear-gradient(160deg,#fa709a,#fee140)','linear-gradient(160deg,#667eea,#764ba2)','linear-gradient(160deg,#f093fb,#f5576c)','linear-gradient(160deg,#4facfe,#00f2fe)','linear-gradient(160deg,#ff9a44,#fc6076)','linear-gradient(160deg,#0ba360,#3cba92)','linear-gradient(160deg,#5ee7df,#b490ca)','linear-gradient(160deg,#f6d365,#fda085)'];
+const gradOf=id=>{let h=0;for(const ch of id)h=(h*31+ch.charCodeAt(0))>>>0;return GRADS[h%GRADS.length]};
 
 /* Store: Firebase Realtime Database, or a local stand-in that syncs browser tabs (for testing) */
 const Store=(()=>{

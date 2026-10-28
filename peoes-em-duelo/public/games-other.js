@@ -15,11 +15,11 @@ function runPhone(g,A,B,cb){
   g.play(ctx);return ctx;
 }
 function pSplit(ctx){const {A,B,g}=ctx;
-  app.innerHTML=`<div class="stage"><div class="half top" style="--pc:${A.color}"><div class="hh">${pawn(A.color,24)}<b>${esc(A.name)}</b></div><div class="hb" id="hA"></div></div>
+  app.innerHTML=`<div class="stage" style="--gg:${gradOf(g.id)}"><div class="half top" style="--pc:${A.color}"><div class="hh">${pawn(A.color,24)}<b>${esc(A.name)}</b></div><div class="hb" id="hA"></div></div>
   <div class="mid"><span>${g.icon} ${g.name}</span></div>
   <div class="half bot" style="--pc:${B.color}"><div class="hh">${pawn(B.color,24)}<b>${esc(B.name)}</b></div><div class="hb" id="hB"></div></div></div>`;
   return[$('#hA'),$('#hB')]}
-function pFull(ctx,html){app.innerHTML=`<div class="full"><div class="fh"><span class="eyebrow">${ctx.g.icon} ${ctx.g.name}</span></div><div class="fb" id="fb">${html}</div></div>`;return $('#fb')}
+function pFull(ctx,html){app.innerHTML=`<div class="full" style="--gg:${gradOf(ctx.g.id)}"><div class="fh"><span class="eyebrow">${ctx.g.icon} ${ctx.g.name}</span></div><div class="fb" id="fb">${html}</div></div>`;return $('#fb')}
 function pCount(ctx,els,cb){[3,2,1].forEach((n,i)=>ctx.t(()=>els.forEach(e=>e.innerHTML=`<div class="cd">${n}</div>`),i*700));ctx.t(cb,2100)}
 function turnGame(ctx,prompt){
   const P=[ctx.A,ctx.B];let cur=R(0,1),left=5,live=false;const SEC=5;

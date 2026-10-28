@@ -217,3 +217,78 @@ input.code{text-transform:uppercase;letter-spacing:.3em;font:800 24px var(--disp
 .pod small{color:var(--muted);font-variant-numeric:tabular-nums}
 .hostbar{position:sticky;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);display:flex;flex-direction:column;gap:8px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ================= Apple-style theme (overrides the arcade look) =================
+   Light, airy menus; each game plays on its own vivid gradient. */
+:root{
+  --bg:#f5f5f7; --bg2:#ececf1; --panel:#ffffff; --ink:#1d1d1f; --cream:#ffffff; --fg:#1d1d1f; --muted:#6e6e73;
+  --lime:#5e5ce6; --lime-d:#3f3dc4; --good:#30d158; --bad:#ff375f; --gold:#ffcc00;
+  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 28px rgba(0,0,0,.08);
+  --accent:linear-gradient(135deg,#5e5ce6,#bf5af2 55%,#ff375f);
+  color-scheme:light;
+}
+body{background:var(--bg);background-image:radial-gradient(60% 40% at 0% 0%,rgba(94,92,230,.14),transparent 70%),radial-gradient(50% 35% at 100% 10%,rgba(255,55,95,.12),transparent 70%),radial-gradient(60% 40% at 50% 100%,rgba(48,209,88,.10),transparent 70%);background-attachment:fixed;background-size:auto;letter-spacing:-.01em}
+h1,h2,h3{letter-spacing:-.025em;font-weight:700}
+.eyebrow{color:#5e5ce6;letter-spacing:.06em;font-weight:600}
+.eyebrow.ink{color:#8e8e93}
+.link{color:#5e5ce6;text-decoration:none;font-weight:500}
+.btn{background:var(--accent);color:#fff;border-radius:999px;box-shadow:0 8px 22px rgba(94,92,230,.32);font:600 18px var(--body);padding:16px 22px;letter-spacing:-.01em}
+.btn:active{transform:scale(.97);box-shadow:0 4px 12px rgba(94,92,230,.3)}
+.btn.ghost{background:rgba(255,255,255,.75);color:var(--fg);border:0;box-shadow:var(--shadow);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.card,.note,.plist li,.chip,.betlist li,.deltas li,.wrow,.bp,.pick,.mode,.seg,.step button,.secret,input.field{background:rgba(255,255,255,.82);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:var(--shadow);border-color:transparent}
+.card{border-radius:24px;color:var(--fg)}.card p{color:var(--muted)}
+.note{color:var(--muted);border-radius:16px}
+input.field{color:var(--fg);border:1px solid rgba(0,0,0,.06);border-radius:14px}
+input.field::placeholder{color:#a1a1a6}
+input.code{font-weight:700;letter-spacing:.35em}
+.logo{font-weight:800;letter-spacing:-.04em;line-height:.9;color:var(--fg)}
+.logo em{background:var(--accent);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo.sm{background:var(--accent);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tag,.sub,.hint{color:var(--muted)}
+.roomcode{background:var(--accent);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800}
+.plist li small{color:#5e5ce6}
+.seg button.on{background:var(--fg);color:#fff;border-radius:10px}
+.colors button{box-shadow:inset 0 -3px 6px rgba(0,0,0,.15),inset 0 3px 6px rgba(255,255,255,.6),var(--shadow)}
+.colors button.on{border-color:var(--fg)}
+.vsx{background:var(--accent);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800}
+.vp b,.bp b,.pick b,.wrow b{font-weight:700}
+.game{display:grid;grid-template-columns:84px 1fr;column-gap:16px;align-items:start}
+.game>*{grid-column:2}.game .gtile{grid-column:1;grid-row:1/span 4}
+.game h3{color:var(--fg);font-size:26px;margin:2px 0 6px}
+.gtile{width:84px;height:84px;border-radius:22px;background:var(--gg);display:grid;place-items:center;font-size:44px;box-shadow:0 10px 24px rgba(0,0,0,.16),inset 0 2px 0 rgba(255,255,255,.45),inset 0 -6px 14px rgba(0,0,0,.12);text-shadow:0 6px 12px rgba(0,0,0,.25)}
+.where{background:#f2f2f7;color:#3a3a3c;font-weight:600}
+.chip b{color:var(--fg)}
+.bp.on{background:color-mix(in srgb,var(--pc) 22%,#fff);border-color:var(--pc)}
+.pick.on{border-color:#5e5ce6}
+.betlist .ok{color:var(--good)}
+.wrow .ws{background:var(--accent);-webkit-background-clip:text;background-clip:text;color:transparent}
+.v.up{color:#248a3d}.v.down{color:#d70015}
+.pod .blk{background:var(--accent);color:#fff;box-shadow:var(--shadow)}
+.winner h1{font-size:36px}
+.pawn{filter:drop-shadow(0 4px 6px rgba(0,0,0,.15))}
+.dotsload::after{color:inherit}
+/* game screens: vivid gradient, white glass UI */
+.solo,.full,.stage{background:var(--gg,var(--accent));--fg:#fff;--muted:rgba(255,255,255,.85);--panel:rgba(255,255,255,.22);--lime:#fff;--cream:#fff;--ink:#1d1d1f;color:#fff}
+.solo .sh{background:rgba(255,255,255,.16);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.2)}
+.solo .sh .nm{font-weight:700}.solo .sh .sv{color:#fff;font-weight:800}
+.solo .overlay{background:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
+.solo .overlay h2,.solo .huge,.solo .big,.solo .cd{color:#fff;text-shadow:0 6px 18px rgba(0,0,0,.18)}
+.solo .hint,.full .hint{color:rgba(255,255,255,.88)}
+.solo .btn,.full .btn{background:#fff;color:#1d1d1f;box-shadow:0 10px 24px rgba(0,0,0,.18)}
+.opt,.keypad button,.ngrid button,.piano button,.g4 button{border-radius:16px;box-shadow:0 6px 14px rgba(0,0,0,.12),inset 0 -3px 0 rgba(0,0,0,.08)}
+.g4 button{background:rgba(255,255,255,.25);color:#fff}
+.g4 button.lit{background:#fff;color:#1d1d1f}.g4 button.hit{background:#30d158}.g4 button.miss{background:#ff375f}
+.keypad button.k2{background:rgba(255,255,255,.25);color:#fff}
+.entry{color:#fff}
+.dots{background:rgba(255,255,255,.18)}.dots i{background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.bigbtn{background:radial-gradient(circle at 35% 30%,#fff,#ffd60a 35%,#ff9f0a);box-shadow:0 14px 0 #c77700,0 18px 40px rgba(0,0,0,.25)}
+.half{background:color-mix(in srgb,var(--pc) 18%,transparent)}
+.mid{background:rgba(0,0,0,.25);color:#fff}
+.tprompt{color:var(--fg)}
+.full .card{color:#1d1d1f}
+.turnbtn{background:rgba(255,255,255,.22);color:#fff}
+.rope{background:rgba(0,0,0,.2);border-color:transparent}
+.cups .tbl{background:radial-gradient(ellipse at 50% 40%,rgba(255,255,255,.35),rgba(255,255,255,.08) 70%,transparent 72%)}
+canvas.three{position:absolute;inset:0;width:100%;height:100%}

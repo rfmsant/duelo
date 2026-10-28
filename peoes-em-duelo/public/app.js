@@ -83,7 +83,7 @@ function vAlliance(){
 function vIntro(){
   const g=gById(room.st.game);
   app.innerHTML=`${head()}${vsBlock()}
-  <div class="card game"><span class="eyebrow ink">Mini-jogo</span><h3><span class="gi">${g.icon}</span>${g.name}</h3><p>${g.rules}</p><span class="where">📍 ${whereTxt(g)}</span></div>
+  <div class="card game"><div class="gtile" style="--gg:${gradOf(g.id)}">${g.icon}</div><span class="eyebrow ink">Mini-jogo</span><h3>${g.name}</h3><p>${g.rules}</p><span class="where">📍 ${whereTxt(g)}</span></div>
   ${isHost()?`<div class="row"><button class="btn ghost" id="swap">Outro jogo</button><button class="btn" id="tobet">Abrir apostas</button></div>`:`<div class="wait"><span class="dotsload">O anfitrião vai abrir as apostas</span></div>`}
   ${strip()}`;
   const sw=$('#swap');if(sw){sw.onclick=()=>{const g2=pickGame();Store.update(ref(),{'st/game':g2,'st/seed':R(1,1e9),recent:[...(room.recent||[]),g2].slice(-16)})};
