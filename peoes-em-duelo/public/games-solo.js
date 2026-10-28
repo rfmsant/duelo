@@ -62,7 +62,7 @@ const QZ=[
 ['Qual é o osso mais comprido do corpo?','Fémur','Úmero','Tíbia','Rádio'],['Em que ano caiu o Muro de Berlim?','1989','1991','1985','1979'],
 ['Que metal é líquido à temperatura ambiente?','Mercúrio','Chumbo','Estanho','Sódio'],['Qual é a capital da Turquia?','Ancara','Istambul','Esmirna','Antália']];
 
-/* Three.js scene on the game screen (transparent, so the gradient shows through) */
+/* Three.js scene on the game screen (transparent, so the game colour shows through) */
 function three3(a){if(!window.THREE)return null;const r=a.el.getBoundingClientRect();const W=r.width,H=r.height;
   const ren=new THREE.WebGLRenderer({antialias:true,alpha:true});ren.setPixelRatio(Math.min(2,devicePixelRatio||1));ren.setSize(W,H);ren.shadowMap.enabled=true;ren.shadowMap.type=THREE.PCFSoftShadowMap;
   ren.domElement.className='three';a.el.appendChild(ren.domElement);const scene=new THREE.Scene();
@@ -88,14 +88,14 @@ S_('jelly','🍮','Corte 50/50','high','%','Toca para cortar a gelatina ao meio.
     if(state==='move'){x+=dir*sp*dt;if(x>maxX){x=maxX;dir=-1}if(x<minX){x=minX;dir=1}}else{tShow+=dt;if(tShow>1.4){if(cutN>=3){a.done(sum/3);return false}mk()}}
     c.clearRect(0,0,W,H);
     const draw=(clipX0,clipX1,dx,col)=>{c.save();c.beginPath();c.rect(clipX0,0,clipX1-clipX0,H);c.clip();c.translate(dx,0);shape(c);
-      const gr=c.createLinearGradient(0,cy-base,0,cy+base);gr.addColorStop(0,col[0]);gr.addColorStop(1,col[1]);c.fillStyle=gr;c.fill();c.restore()};
-    if(state==='move'){draw(0,W,0,['#ff8fb3','#ff4f8b']);c.strokeStyle='#fff';c.lineWidth=3;c.setLineDash([8,6]);c.beginPath();c.moveTo(x,cy-base*1.6);c.lineTo(x,cy+base*1.6);c.stroke();c.setLineDash([])}
-    else{const off=Math.min(1,tShow*4)*14;draw(0,res.cx,-off,['#ffe066','#ffb800']);draw(res.cx,W,off,['#7cf5d8','#1ccfa5']);
+      c.fillStyle=col[0];c.fill();c.restore()};
+    if(state==='move'){draw(0,W,0,['#ff2d55']);c.strokeStyle='#fff';c.lineWidth=3;c.setLineDash([8,6]);c.beginPath();c.moveTo(x,cy-base*1.6);c.lineTo(x,cy+base*1.6);c.stroke();c.setLineDash([])}
+    else{const off=Math.min(1,tShow*4)*14;draw(0,res.cx,-off,['#ffcc00']);draw(res.cx,W,off,['#00c7be']);
       c.fillStyle='#fff';c.font='800 28px Bricolage Grotesque, sans-serif';c.textAlign='center';
       c.fillText(`${res.L.toFixed(1).replace('.',',')}% / ${(100-res.L).toFixed(1).replace('.',',')}%`,W/2,cy+base*1.55)}
     c.fillStyle='rgba(255,255,255,.7)';c.font='600 15px Rubik, sans-serif';c.textAlign='center';c.fillText(`Corte ${Math.min(cutN+1,3)} de 3`,W/2,30)})}),
 S_('center','🎯','No Centro','high','pts','A agulha anda de um lado para o outro. Toca para a parar no verde. 6 tentativas, cada vez mais rápidas.',a=>{
-  a.el.innerHTML=`<div style="width:min(340px,90%);position:relative;height:70px"><div style="position:absolute;inset:20px 0;border-radius:12px;background:linear-gradient(90deg,#ff5d73 0 18%,#ff9f43 18% 34%,#ffd23f 34% 45%,#2ee59d 45% 55%,#ffd23f 55% 66%,#ff9f43 66% 82%,#ff5d73 82%)"></div><div id="nd" style="position:absolute;top:0;bottom:0;width:6px;margin-left:-3px;background:#fff;border-radius:3px;box-shadow:0 0 0 2px #22103f"></div></div><div class="big" id="pt">&nbsp;</div><p class="hint" id="ht">Tentativa 1 de 6</p>`;
+  a.el.innerHTML=`<div style="width:min(340px,90%);position:relative;height:70px"><div style="position:absolute;inset:20px 0;border-radius:12px;overflow:hidden;display:flex"><i style="flex:18;background:#ff375f"></i><i style="flex:16;background:#ff9500"></i><i style="flex:11;background:#ffcc00"></i><i style="flex:10;background:#34c759"></i><i style="flex:11;background:#ffcc00"></i><i style="flex:16;background:#ff9500"></i><i style="flex:18;background:#ff375f"></i></div><div id="nd" style="position:absolute;top:0;bottom:0;width:6px;margin-left:-3px;background:#fff;border-radius:3px;box-shadow:0 0 0 2px #22103f"></div></div><div class="big" id="pt">&nbsp;</div><p class="hint" id="ht">Tentativa 1 de 6</p>`;
   const nd=$('#nd');let p=a.rnd(),dir=1,tries=0,sum=0,paused=false;a.show(0);
   a.el.addEventListener('pointerdown',e=>{e.preventDefault();if(paused)return;paused=true;const d=Math.abs(p-.5);const s=Math.max(0,Math.round(100-d*220));sum+=s;tries++;a.show(sum);
     $('#pt').textContent=s>=90?`${s} perfeito!`:s;$('#ht').textContent=tries<6?`Tentativa ${tries+1} de 6`:'Fim';
@@ -202,8 +202,8 @@ S_('colormem','🎨','Memória de Cor','high','%','Decora a cor e depois recria-
     a.t(()=>{let h=180,s=50,l=50;
       a.el.innerHTML=`<p class="hint">Recria a cor</p><div class="swatch" id="sw"></div><div class="sliders"><input type="range" id="h" min="0" max="359" value="180" aria-label="Tom"><input type="range" id="s" min="0" max="100" value="50" aria-label="Saturação"><input type="range" id="l" min="0" max="100" value="50" aria-label="Luz"></div><button class="btn" id="ok">Confirmar</button>`;
       const upd=()=>{h=+$('#h').value;s=+$('#s').value;l=+$('#l').value;$('#sw').style.background=`hsl(${h} ${s}% ${l}%)`;
-        $('#h').style.background='linear-gradient(90deg,'+[0,60,120,180,240,300,360].map(x=>`hsl(${x} ${s}% ${l}%)`).join(',')+')';
-        $('#s').style.background=`linear-gradient(90deg,hsl(${h} 0% ${l}%),hsl(${h} 100% ${l}%))`;$('#l').style.background=`linear-gradient(90deg,#000,hsl(${h} ${s}% 50%),#fff)`};
+        const bands=A=>'linear-gradient(90deg,'+A.map((c,i)=>`${c} ${i/A.length*100}% ${(i+1)/A.length*100}%`).join(',')+')';$('#h').style.background=bands([...Array(12).keys()].map(i=>`hsl(${i*30} ${s}% ${l}%)`));
+        $('#s').style.background=bands([...Array(8).keys()].map(i=>`hsl(${h} ${i*100/7}% ${l}%)`));$('#l').style.background=bands([...Array(8).keys()].map(i=>`hsl(${h} ${s}% ${i*100/7}%)`))};
       ['h','s','l'].forEach(id=>$('#'+id).addEventListener('input',upd));upd();
       $('#ok').onclick=()=>{const p=hsl2rgb(...T),q=hsl2rgb(h,s,l);const d=Math.hypot(p[0]-q[0],p[1]-q[1],p[2]-q[2]);const acc=Math.max(0,100-d/2.2);sum+=acc;n++;a.show(sum/n);
         a.el.innerHTML=`<div class="row" style="width:min(300px,100%)"><div class="swatch" style="background:hsl(${T[0]} ${T[1]}% ${T[2]}%)"></div><div class="swatch" style="background:hsl(${h} ${s}% ${l}%)"></div></div><div class="big">${acc.toFixed(1).replace('.',',')}%</div>`;
@@ -307,7 +307,7 @@ S_('keepup','⚪','Não Deixes Cair','high','pts','Toca na bola para a manter no
 /* ---- added: lane, rhythm, basket, sum10, true/false, pairs ---- */
 S_('faixa','🚗','Faixa Rápida','high','pts','Toca na metade ESQUERDA ou DIREITA do ecrã para mudar de faixa e fugir aos carros. Fica cada vez mais rápido.',a=>{
   const T=three3(a);if(!T)return a.done(0);const {scene,ren,W,H}=T;const cam=new THREE.PerspectiveCamera(62,W/H,.1,220);cam.position.set(0,5.2,10.5);cam.lookAt(0,0,-9);
-  scene.fog=new THREE.Fog(0xe9eefc,40,150);T.dl.position.set(-6,14,8);T.dl.shadow.camera.left=-10;T.dl.shadow.camera.right=10;T.dl.shadow.camera.top=12;T.dl.shadow.camera.bottom=-12;
+  T.dl.position.set(-6,14,8);T.dl.shadow.camera.left=-10;T.dl.shadow.camera.right=10;T.dl.shadow.camera.top=12;T.dl.shadow.camera.bottom=-12;
   const std=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.6},o));
   const road=new THREE.Mesh(new THREE.PlaneGeometry(7.6,400),std(0x3a3a3c));road.rotation.x=-Math.PI/2;road.position.z=-150;road.receiveShadow=true;scene.add(road);
   [-1,1].forEach(s=>{const g=new THREE.Mesh(new THREE.PlaneGeometry(60,400),std(0x34c759));g.rotation.x=-Math.PI/2;g.position.set(s*33.8,-.01,-150);g.receiveShadow=true;scene.add(g);
