@@ -294,6 +294,68 @@ S_('keepup','⚪','Não Deixes Cair','high','pts','Toca na bola para a manter no
       if(y>H-r){y=H-r;over=true;a.t(()=>a.done(sc),700)}}
     c.clearRect(0,0,W,H);c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(x,H-6,r*(.4+y/H*.6),6,0,0,Math.PI*2);c.fill();
     c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fillStyle='#fff';c.fill()})}),
+/* ---- added: lane, rhythm, basket, sum10, true/false, pairs ---- */
+S_('faixa','🚗','Faixa Rápida','high','pts','Toca na metade ESQUERDA ou DIREITA do ecrã para mudar de faixa e fugir aos carros. Fica cada vez mais rápido.',a=>{
+  const {c,W,H}=a.canvas();const L=3,lw=Math.min(110,W/3.4),x0=(W-lw*L)/2;let lane=1,cx=x0+lw*1.5,cars=[],dist=0,sp=260,over=false,acc=0;a.show(0);
+  const spawn=()=>{const free=Math.floor(a.rnd()*L);for(let i=0;i<L;i++)if(i!==free&&a.rnd()<.55)cars.push({l:i,y:-90,col:pk(['#ff5d73','#4d8bff','#ffd23f','#b98cff','#ff9f43'],a.rnd)})};
+  a.el.addEventListener('pointerdown',e=>{e.preventDefault();if(over)return;const r=a.el.getBoundingClientRect();lane=Math.max(0,Math.min(L-1,lane+(e.clientX-r.left<r.width/2?-1:1)))});
+  const car=(x,y,col)=>{c.fillStyle=col;c.beginPath();c.roundRect(x-lw*.3,y,lw*.6,80,12);c.fill();c.fillStyle='rgba(20,10,40,.55)';c.fillRect(x-lw*.22,y+16,lw*.44,16);c.fillRect(x-lw*.22,y+52,lw*.44,12)};
+  a.loop(dt=>{if(!over){sp+=dt*9;dist+=sp*dt;acc+=sp*dt;if(acc>230){acc=0;spawn()}cars.forEach(k=>k.y+=sp*dt);cars=cars.filter(k=>k.y<H+100);
+      cx+=(x0+lw*(lane+.5)-cx)*Math.min(1,dt*14);const py=H-130;
+      if(cars.some(k=>k.l===lane&&k.y+80>py+6&&k.y<py+74&&Math.abs(cx-(x0+lw*(lane+.5)))<lw*.4)){over=true;a.t(()=>a.done(Math.floor(dist/40)),900)}
+      a.show(Math.floor(dist/40))}
+    c.clearRect(0,0,W,H);c.fillStyle='#2b2140';c.fillRect(x0,0,lw*L,H);c.strokeStyle='rgba(255,255,255,.5)';c.lineWidth=4;c.setLineDash([26,22]);c.lineDashOffset=-dist%48;
+    for(let i=1;i<L;i++){c.beginPath();c.moveTo(x0+lw*i,0);c.lineTo(x0+lw*i,H);c.stroke()}c.setLineDash([]);
+    cars.forEach(k=>car(x0+lw*(k.l+.5),k.y,k.col));car(cx,H-130,over?'#666':'#2ee59d');
+    c.save();c.globalAlpha=dist<1500?.85:.25;c.fillStyle='#fff';c.font='800 20px Bricolage Grotesque,sans-serif';c.textAlign='center';c.fillText('◀ TOCA',W*.16,H-16);c.fillText('TOCA ▶',W*.84,H-16);c.restore()})}),
+S_('ritmo','🥁','Ritmo','high','%','O anel encolhe até ao círculo: toca no momento exato em que encaixa. São 16 batidas; conta a precisão média.',a=>{
+  a.el.innerHTML=`<div id="rp" style="position:relative;width:220px;height:220px"><div style="position:absolute;inset:60px;border-radius:50%;background:#ffd23f;box-shadow:0 0 0 8px rgba(255,210,63,.25)"></div><div id="rr" style="position:absolute;inset:60px;border-radius:50%;border:6px solid #fff;opacity:0"></div></div><div class="big" id="rf">&nbsp;</div><p class="hint">Toca em qualquer sítio do ecrã</p>`;
+  const N=16,ivl=620,lead=1300,t0=performance.now()+lead;const beats=Array.from({length:N},(_,k)=>t0+k*ivl);const got=new Array(N).fill(null);let ac=null;
+  try{ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}
+  const beep=(at)=>{if(!ac)return;const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=880;g.gain.value=.0001;o.connect(g);g.connect(ac.destination);const t=ac.currentTime+Math.max(0,(at-performance.now())/1000);
+    g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.09);o.start(t);o.stop(t+.1)};
+  beats.forEach(b=>beep(b));
+  const avg=()=>{const v=got.map(x=>x==null?0:x);return v.reduce((s,x)=>s+x,0)/N};
+  a.el.addEventListener('pointerdown',e=>{e.preventDefault();const now=performance.now();let bi=-1,bd=1e9;beats.forEach((b,i)=>{if(got[i]==null&&Math.abs(now-b)<bd){bd=Math.abs(now-b);bi=i}});
+    if(bi<0||bd>300)return;const sc=Math.max(0,100-bd/2.2);got[bi]=sc;$('#rf').textContent=sc>90?'Perfeito!':sc>70?'Boa':sc>40?'Quase':'Fora';a.show(avg())});
+  a.loop(()=>{const now=performance.now();const nx=beats.findIndex((b,i)=>got[i]==null&&b>now-300);const rr=$('#rr');
+    if(nx<0){if(now>beats[N-1]+400){a.done(avg());return false}rr.style.opacity=0;return}
+    const p=(beats[nx]-now)/ivl;rr.style.opacity=p<1.05&&p>-.3?1:0;rr.style.transform=`scale(${1+Math.max(-.2,p)*1.6})`;
+    beats.forEach((b,i)=>{if(got[i]==null&&now>b+300)got[i]=0})})}),
+S_('basket','🏀','Basquetebol','high','pts','Arrasta o dedo para cima para lançar a bola ao cesto, que se mexe. O máximo de cestos em 30 segundos.',a=>{
+  const {c,W,H}=a.canvas();const R=20,hy=H*.26,rim=34;let hx=W/2,hd=1,b=null,sc=0,sx,sy,st,flash=0;a.show(0);const by0=H-90;
+  a.el.addEventListener('pointerdown',e=>{e.preventDefault();if(b)return;sx=e.clientX;sy=e.clientY;st=performance.now()});
+  a.el.addEventListener('pointerup',e=>{if(b||sx==null)return;const dx=e.clientX-sx,dy=e.clientY-sy;sx=null;if(dy>-30)return;
+    const pw=Math.min(1.25,Math.max(.6,-dy/260));b={x:W/2,y:by0,vx:dx*2.4,vy:-Math.sqrt(2*1500*(by0-hy+60))*pw,pass:false,sc:false}});
+  a.loop(dt=>{hx+=hd*(70+sc*8)*dt;if(hx>W-60){hx=W-60;hd=-1}if(hx<60){hx=60;hd=1}flash=Math.max(0,flash-dt);
+    if(b){const py=b.y;b.vy+=1500*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;
+      if(!b.sc&&b.vy>0&&py<hy&&b.y>=hy){if(Math.abs(b.x-hx)<rim-6){b.sc=true;sc++;a.show(sc);flash=.6}else if(Math.abs(Math.abs(b.x-hx)-rim)<R){b.vy*=-.4;b.vx+=(b.x-hx)*3}}
+      if(b.y>H+40||b.x<-60||b.x>W+60)b=null}
+    c.clearRect(0,0,W,H);c.fillStyle='#fff';c.fillRect(hx-46,hy-70,92,62);c.strokeStyle='#ff5d73';c.lineWidth=4;c.strokeRect(hx-20,hy-42,40,30);
+    c.strokeStyle='rgba(255,255,255,.75)';c.lineWidth=2;for(let i=-3;i<=3;i++){c.beginPath();c.moveTo(hx+i*10,hy);c.lineTo(hx+i*6,hy+34);c.stroke()}
+    const ball=(x,y)=>{c.beginPath();c.arc(x,y,R,0,Math.PI*2);c.fillStyle='#ff8a2a';c.fill();c.strokeStyle='#7a3300';c.lineWidth=2;c.beginPath();c.moveTo(x-R,y);c.lineTo(x+R,y);c.moveTo(x,y-R);c.lineTo(x,y+R);c.stroke()};
+    if(b&&b.vy<0)ball(b.x,b.y);c.strokeStyle='#ff9f43';c.lineWidth=6;c.beginPath();c.moveTo(hx-rim,hy);c.lineTo(hx+rim,hy);c.stroke();if(b&&b.vy>=0)ball(b.x,b.y);
+    if(!b)ball(W/2,by0);if(flash){c.fillStyle='#c6ff3d';c.font='800 30px Bricolage Grotesque,sans-serif';c.textAlign='center';c.fillText('CESTO!',W/2,H*.55)}
+    c.fillStyle='rgba(255,255,255,.6)';c.font='600 14px Rubik,sans-serif';c.textAlign='center';c.fillText('Arrasta para cima ↑',W/2,H-24)});
+  a.timer(30,()=>a.done(sc))}),
+S_('soma10','🔟','Soma 10','high','pts','Toca em dois números que somem 10. Os pares certos dão ponto e são trocados por novos; um par errado tira um ponto. 30 segundos.',a=>{
+  let g=Array.from({length:16},()=>Ri(a.rnd,1,9)),sel=null,sc=0;a.show(0);
+  const fix=()=>{const has=g.some((x,i)=>g.some((y,j)=>i!==j&&x+y===10));if(!has){const i=Ri(a.rnd,0,15);let j=(i+1+Ri(a.rnd,0,14))%16;g[j]=10-g[i]}};fix();
+  const draw=()=>{a.el.innerHTML=`<p class="hint">Faz 10 com dois números</p><div class="g4">${g.map((n,i)=>`<button data-i="${i}" class="${sel===i?'lit':''}">${n}</button>`).join('')}</div>`;
+    a.el.querySelectorAll('[data-i]').forEach(b=>on(b,()=>{const i=+b.dataset.i;if(sel==null){sel=i;draw();return}if(sel===i){sel=null;draw();return}
+      if(g[sel]+g[i]===10){sc++;g[sel]=Ri(a.rnd,1,9);g[i]=Ri(a.rnd,1,9);fix()}else{sc=Math.max(0,sc-1);b.classList.add('miss')}sel=null;a.show(sc);a.t(draw,g[0]!=null?120:0)}))};
+  draw();a.timer(30,()=>a.done(sc))}),
+S_('vf','✅','Certo ou Errado','high','pts','Aparece uma conta já resolvida. Diz se o resultado está certo ou errado. 30 segundos; cada erro tira um ponto.',a=>quizRun(a,r=>{const op=pk(['+','−','×'],r);let x,y,v;
+  if(op==='×'){x=Ri(r,3,12);y=Ri(r,3,12);v=x*y}else if(op==='+'){x=Ri(r,12,89);y=Ri(r,12,89);v=x+y}else{x=Ri(r,30,99);y=Ri(r,5,x-5);v=x-y}
+  const ok=r()<.5;const shown=ok?v:v+pk([-10,-2,-1,1,2,10],r);return{q:`<div class="big">${x} ${op} ${y} = ${shown}</div>`,opts:['✓ Certo','✗ Errado'],ans:ok?0:1,fixed:true}})),
+S_('pares','🃏','Jogo dos Pares','low','s','Vira as cartas duas a duas e encontra os 8 pares. Ganha quem terminar mais depressa.',a=>{
+  const E=shuf(['🍕','🚀','🐙','🎸','🌵','🍩','⚽','🦊'],a.rnd);const deck=shuf([...E,...E],a.rnd);const open=[],done=new Set();let lock=false;const t0=performance.now();
+  a.el.innerHTML=`<div class="g4">${deck.map((e,i)=>`<button data-i="${i}"></button>`).join('')}</div>`;const bs=[...a.el.querySelectorAll('[data-i]')];
+  a.loop(()=>a.tv(((performance.now()-t0)/1000).toFixed(1)+'s'));
+  bs.forEach((b,i)=>on(b,()=>{if(lock||done.has(i)||open.includes(i))return;b.textContent=deck[i];b.classList.add('lit');open.push(i);
+    if(open.length===2){const [x,y]=open;if(deck[x]===deck[y]){done.add(x);done.add(y);bs[x].classList.replace('lit','hit');bs[y].classList.replace('lit','hit');open.length=0;
+        if(done.size===16)a.done((performance.now()-t0)/1000)}
+      else{lock=true;a.t(()=>{[x,y].forEach(k=>{bs[k].textContent='';bs[k].classList.remove('lit')});open.length=0;lock=false},650)}}}))}),
 /* ---- quick-answer runs ---- */
 S_('mat','➗','Contas Rápidas','high','pts','Responde ao máximo de contas em 30 segundos. Cada erro tira um ponto.',a=>quizRun(a,r=>{const op=pk(['+','−','×'],r);let x,y,v;
   if(op==='×'){x=Ri(r,3,12);y=Ri(r,3,12);v=x*y}else if(op==='+'){x=Ri(r,12,89);y=Ri(r,12,89);v=x+y}else{x=Ri(r,30,99);y=Ri(r,5,x-5);v=x-y}

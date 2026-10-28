@@ -58,7 +58,6 @@ P_('letra','🔤','Letra Inicial','À vez, digam palavras começadas pela letra 
 ];
 const F_=(id,icon,name,rules,o={})=>Object.assign({id,icon,name,kind:'ref',rules},o);
 const REF=[
-F_('flamingo','🦩','Flamingo','De pé, só num pé e de olhos fechados. Quem pousar o pé ou abrir os olhos primeiro perde.'),
 F_('desenho','✏️','Desenho Cego','Cada um vê a sua palavra no telemóvel e desenha-a num papel de olhos fechados. O desenho que o público adivinhar primeiro ganha.',{timer:30,secret:WORDS}),
 ];
 const GAMES=[...SOLO,...PHONE,...REF];
