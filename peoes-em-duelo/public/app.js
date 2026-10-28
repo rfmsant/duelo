@@ -41,13 +41,13 @@ function leave(msg){unsub&&unsub();unsub=null;room=null;me.code=null;ss.set('pd_
 
 /* ---------- shared bits ---------- */
 const head=()=>`<header class="bar"><span class="eyebrow">Sala ${me.code}${room.st.round?` · Ronda ${room.st.round} de ${room.cfg.total}`:''}</span><span><button class="link" id="mute" aria-label="Som">${muted?'🔇':'🔊'}</button> <button class="link" id="leave">Sair</button></span></header>`;
-const strip=()=>`<div class="strip">${players().sort((a,b)=>b.pts-a.pts||a.sips-b.sips).map(p=>`<${isHost()&&p.id!==me.pid?'button':'span'} class="chip" data-rm="${p.id}">${pawn(p.color,16)}${esc(p.name)} <b>${p.pts} pts · ${p.sips}🍺</b>${alOf(p.id)?'🤝':''}</${isHost()&&p.id!==me.pid?'button':'span'}>`).join('')}</div>${isHost()?'<p class="sub" style="font-size:12px">Alguém saiu? Toca duas vezes no nome para o remover.</p>':''}`;
+const strip=()=>`<div class="strip">${players().sort((a,b)=>b.pts-a.pts||a.sips-b.sips).map(p=>`<${isHost()&&p.id!==me.pid?'button':'span'} class="chip" data-rm="${p.id}">${bub(p,26)}${esc(p.name)} <b>${p.pts} pts · ${p.sips}🍺</b>${alOf(p.id)?'🤝':''}</${isHost()&&p.id!==me.pid?'button':'span'}>`).join('')}</div>${isHost()?'<p class="sub" style="font-size:12px">Alguém saiu? Toca duas vezes no nome para o remover.</p>':''}`;
 let rmArmed=null;function bindRemove(){app.querySelectorAll('button[data-rm]').forEach(b=>b.onclick=()=>{const id=b.dataset.rm;
   if(rmArmed===id){rmArmed=null;removePlayer(id);return}rmArmed=id;b.innerHTML=`Remover ${esc(P(id).name)}?`;b.style.background='#ff375f';b.style.color='#fff';setTimeout(()=>{if(rmArmed===id)rmArmed=null},3000)})}
 function removePlayer(id){const st=room.st;const inDuel=id===st.a||id===st.b;Store.update(ref(),{['players/'+id]:null});
   if(inDuel&&['event','bet','intro','play','tie'].includes(st.phase))hostNext(false,true,id)}
 const duo=()=>[P(room.st.a),P(room.st.b)];
-const vsBlock=(s=64)=>{const [A,B]=duo();return `<div class="vs"><div class="vp">${pawn(A.color,s)}<b>${esc(A.name)}</b></div><span class="vsx">VS</span><div class="vp">${pawn(B.color,s)}<b>${esc(B.name)}</b></div></div>`};
+const vsBlock=(s=64)=>{const [A,B]=duo();return `<div class="vs"><div class="vp">${bub(A,s+12,A===P(me.pid)?'TU':'')}<b>${esc(A.name)}</b></div><span class="vsx">VS</span><div class="vp">${bub(B,s+12,B===P(me.pid)?'TU':'')}<b>${esc(B.name)}</b></div></div>`};
 const whereTxt=g=>g.kind==='phone'?WHERE.phone+esc(P(room.st.a).name):WHERE[g.kind];
 const bind=()=>{const mu=$('#mute');if(mu)mu.onclick=()=>{muted=!muted;ls.set('pd_mute',muted);mu.textContent=muted?'🔇':'🔊';sfx('tap')};const l=$('#leave');if(l)l.onclick=()=>{if(isHost()&&players().length>1&&!confirmLeave())return;leave()}};
 let leaveArmed=0;function confirmLeave(){if(Date.now()-leaveArmed<3000)return true;leaveArmed=Date.now();const l=$('#leave');if(l)l.textContent='Toca outra vez para sair';return false}
@@ -58,7 +58,7 @@ const specs=()=>players().filter(p=>p.id!==room.st.a&&p.id!==room.st.b);
 function render(){
   const st=room.st||{};
   if(active&&(st.phase!=='play'||active.key!==playKey())){active.kill();active=null}
-  if(active)return;
+  if(active){const o=$('#ov');if(o&&st.phase==='play'){const g=gById(st.game),r=(room.res&&room.res[playKey()])||{},oid=me.pid===st.a?st.b:st.a,x=r[oid];o.textContent=x?(g.hideLive?(x.done?'✓':'…'):fmtScore(g,x.live)+(x.done?' ✓':'')):'—'}return}
   clearUi();
   ({lobby:vLobby,alliance:vEvent,event:vEvent,intro:vBet,bet:vBet,play:vPlay,tie:vTie,result:vResult,final:vFinal}[st.phase]||vLobby)();
   bind();bindRemove();
@@ -105,7 +105,7 @@ function vBet(){
     <div class="step"><button id="m" ${myBet.amt<=1?'disabled':''} aria-label="Menos">−</button><span>${myBet.amt}🍺</span><button id="p" ${myBet.amt>=3?'disabled':''} aria-label="Mais">+</button></div>
     <button class="btn" id="cf" ${myBet.on==null?'disabled':''}>Apostar</button>${list}`}
   const g=gById(room.st.game);const evTag=room.st.ev?`<span class="where">${EVENTS[room.st.ev.type].i} ${EVENTS[room.st.ev.type].t}</span>`:'';
-  app.innerHTML=`${head()}${vsBlock(48)}<div class="card game"><div class="gtile" style="--gg:${gradOf(g.id)}">${g.icon}</div><span class="eyebrow ink">Mini-jogo · ${whereTxt(g)}</span><h3>${g.name}</h3><p>${g.rules}</p>${evTag}</div>
+  app.innerHTML=`${head()}${vsBlock(48)}<div class="gart" style="--gg:${gradOf(g.id)}"><span class="gtag">📍 ${whereTxt(g)}</span>${evTag?`<span class="gev">${evTag}</span>`:''}<div class="gico">${g.icon}</div><b class="gname">${g.name}</b></div><p class="rules2">${g.rules}</p>
   <h2>Apostas</h2>${body}${isHost()?`<div class="row"><button class="btn ghost sm" id="swap">Outro jogo</button><button class="btn ghost sm" id="lock">Jogar já</button></div><p class="sub" style="font-size:13px">O duelo começa sozinho quando todos apostarem.</p>`:''}${strip()}`;
   const sw=$('#swap');if(sw)sw.onclick=()=>{const g2=pickGame();Store.update(ref(),{'st/game':g2,'st/seed':R(1,1e9),recent:[...(room.recent||[]),g2].slice(-16)})};
   app.querySelectorAll('.bp').forEach(b=>b.onclick=()=>{myBet.on=+b.dataset.on;vBet();bind();bindRemove()});
@@ -121,7 +121,7 @@ function vPlay(){
     if(amDuelist()){const mine=room.res&&room.res[key]&&room.res[key][me.pid];
       if(mine&&mine.done)return vWatch(g,key);
       active={key,kill:()=>{}};
-      const api=runSolo(g,room.st.seed,{
+      const opp=P(me.pid===room.st.a?room.st.b:room.st.a);const api=runSolo(g,room.st.seed,{players:[P(me.pid),opp],
         live:v=>{const now=Date.now();if(now-lastLive>700){lastLive=now;Store.update(ref(`res/${key}/${me.pid}`),{live:v})}},
         done:v=>Store.set(ref(`res/${key}/${me.pid}`),{live:v,score:v,done:true,started:true})});
       active.kill=api.kill;
@@ -175,12 +175,12 @@ function vTie(){
 function vResult(){
   const L=room.last||{},g=gById(room.st.game),W=P(L.wid);
   const rows=(L.lines||[]).map(l=>{const p=P(l.id);if(!p)return'';const parts=[];if(l.pts)parts.push(`<span class="v ${l.pts>0?'up':'down'}">${l.pts>0?'+':''}${l.pts} pts</span>`);if(l.sips)parts.push(`<span class="v down">bebe ${l.sips}</span>`);if(l.give)parts.push(`<span class="v up">distribui ${l.give}</span>`);
-    return `<li>${pawn(p.color,22)}<b>${esc(p.name)}${l.id===L.wid?' 🏆':''}</b>${parts.join(' · ')||'<span class="v zero">safo</span>'}</li>`}).join('');
+    return `<li class="${l.id===me.pid?'me':''}"><span class="rk">${l.id===L.wid?'🏆':''}</span>${bub(p,40)}<b>${esc(p.name)}</b>${parts.join(' · ')||'<span class="v zero">safo</span>'}</li>`}).join('');
   const last=room.st.round>=room.cfg.total;
-  app.innerHTML=`${head()}<div class="winner">${pawn(W.color,72)}<span class="eyebrow">${g.icon} ${g.name}</span><h1>${esc(W.name)} ganhou!</h1>${L.scores?`<p class="sub">${L.scores}</p>`:''}</div>
-  <ul class="deltas">${rows}</ul>${(L.notes||[]).map(n=>`<p class="sub">${n}</p>`).join('')}
+  app.innerHTML=`${head()}<div class="gocard dark"><span>${g.icon} ${g.name.toUpperCase()}</span><div class="wbub">${bub(W,84)}</div><b>${esc(W.name).toUpperCase()} GANHOU</b>${L.scores?`<small>${L.scores}</small>`:''}</div>
+  <ul class="deltas lb">${rows}</ul>${(L.notes||[]).map(n=>`<p class="sub">${n}</p>`).join('')}
   <p class="sub" style="text-align:center" id="nxt">&nbsp;</p>
-  ${isHost()?`<button class="btn" id="nx">${last?'Ver resultados finais':'Próxima ronda'}</button>`:''}${strip()}`;
+  ${isHost()?`<button class="btn yellow" id="nx">🎉 ${last?'Ver resultados finais':'Próxima ronda'}</button>`:''}${strip()}`;
   const nx=$('#nx');if(nx)nx.onclick=()=>once('nx'+room.st.round,()=>hostNext());
   const t0=room.st.resAt||Date.now(),D=9000;if(!vResult.played||vResult.played!==room.st.round){vResult.played=room.st.round;sfx(L.wid===me.pid?'win':'done')}
   const tick=()=>{const left=Math.ceil((D-(Date.now()-t0))/1000);const el=$('#nxt');if(el)el.textContent=left>0?`${last?'Resultados finais':'Próxima ronda'} em ${left}s`:'';

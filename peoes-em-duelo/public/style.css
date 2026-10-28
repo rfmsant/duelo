@@ -295,3 +295,57 @@ canvas.three{position:absolute;inset:0;width:100%;height:100%}
 
 .evicon{font-size:64px;line-height:1}
 button.chip{border:0;font:inherit;cursor:pointer}
+
+/* ================= Playus-style layout (solid colours only, chunky type, lipped buttons) ================= */
+:root{--bg:#f4f1ea;--fg:#1c1b22;--muted:#77737f;--accent:#6c5ce7;--lime:#6c5ce7;
+  --display:"Unbounded","Arial Black",system-ui,sans-serif;--body:"Nunito",-apple-system,"Segoe UI",system-ui,sans-serif;--shadow:0 4px 0 rgba(0,0,0,.06),0 10px 24px rgba(0,0,0,.06)}
+body{background-color:var(--bg);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Ccircle cx='3' cy='3' r='1.6' fill='%23e3ded2'/%3E%3C/svg%3E");background-size:22px 22px;font-family:var(--body);font-weight:600}
+h1,h2,h3,.logo{font-family:var(--display);font-weight:800;letter-spacing:-.01em}
+h2{font-size:17px;text-transform:uppercase;letter-spacing:.02em}
+.logo{font-weight:900;text-transform:uppercase}
+.eyebrow{font-family:var(--body);font-weight:800;color:var(--accent)}
+.btn{background:#6c5ce7;color:#fff;border-radius:22px;box-shadow:0 6px 0 #4c3fc2;font:700 18px var(--display);padding:18px 22px;text-transform:none}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #4c3fc2}
+.btn.yellow{background:#ffd84d;color:#1c1b22;box-shadow:0 6px 0 #d4a900}.btn.yellow:active{box-shadow:0 2px 0 #d4a900}
+.btn.ghost{background:#fff;color:var(--fg);box-shadow:0 5px 0 #ddd8cc;backdrop-filter:none;-webkit-backdrop-filter:none}
+.btn.big{width:100%;max-width:420px;font-size:20px;padding:20px}
+.card,.note,.plist li,.chip,.betlist li,.deltas li,.wrow,.bp,.pick,.mode,.seg,.step button,.secret,input.field{background:#fff;box-shadow:var(--shadow);backdrop-filter:none;-webkit-backdrop-filter:none}
+.card{border-radius:28px}input.field{border-radius:18px;font-family:var(--body);font-weight:700}
+.chip{padding:3px 12px 3px 3px;font-weight:700}
+.vsx{font-family:var(--display);font-weight:900;color:var(--fg)}
+/* avatar bubbles */
+.bub{position:relative;width:var(--bs);height:var(--bs);border-radius:50%;background:color-mix(in srgb,var(--pc) 22%,#fff);box-shadow:0 0 0 3px #fff,0 0 0 6px var(--pc);display:inline-grid;place-items:center;flex:none;overflow:visible}
+.bub svg{margin-top:6%}
+.bub em{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:#ffd84d;color:#1c1b22;font:800 11px var(--body);font-style:normal;padding:3px 9px;border-radius:99px;box-shadow:0 2px 0 #d4a900;z-index:1}
+.chip .bub{box-shadow:0 0 0 2px var(--pc)}
+/* game art card (like the daily game card) */
+.gart{position:relative;background:var(--gg);border-radius:30px;height:200px;display:grid;place-items:center;box-shadow:0 8px 0 rgba(0,0,0,.18);margin-bottom:26px}
+.gico{font-size:104px;line-height:1;filter:drop-shadow(0 10px 0 rgba(0,0,0,.15))}
+.gname{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);background:#fff;color:var(--fg);font:800 18px var(--display);text-transform:uppercase;padding:12px 22px;border-radius:99px;box-shadow:0 5px 0 #1c1b22;white-space:nowrap}
+.gtag{position:absolute;top:14px;left:14px;background:rgba(0,0,0,.45);color:#fff;font:800 12px var(--body);padding:6px 12px;border-radius:99px}
+.gev{position:absolute;top:14px;right:14px}.gev .where{margin:0;background:#ffd84d;color:#1c1b22}
+.rules2{color:var(--muted);text-align:center;font-size:15px;line-height:1.45;padding:0 6px}
+/* in-game header: both duelists with live scores */
+.solo .sh{background:rgba(0,0,0,.18);backdrop-filter:none;-webkit-backdrop-filter:none;border:0;justify-content:center;gap:34px;padding:22px 16px 12px}
+.who{display:flex;flex-direction:column;align-items:center;gap:0}
+.who .bub{box-shadow:0 0 0 3px rgba(255,255,255,.9)}
+.pill{background:#fff;color:#1c1b22;font:800 13px var(--body);padding:5px 12px;border-radius:99px;margin-top:-8px;position:relative;z-index:1;box-shadow:0 3px 0 rgba(0,0,0,.15);white-space:nowrap;font-variant-numeric:tabular-nums}
+.solo .tv{text-align:center;font:900 30px var(--display);color:#fff;min-height:0;padding-top:6px}.solo .tv:empty{display:none}
+.solo .overlay{background:color-mix(in srgb,var(--gg) 88%,#000);backdrop-filter:none;-webkit-backdrop-filter:none}
+.overlay.intro{justify-content:flex-end;padding-bottom:34px}
+.overlay.intro .art{font-size:120px;line-height:1;margin-bottom:auto;margin-top:auto;filter:drop-shadow(0 12px 0 rgba(0,0,0,.2))}
+.overlay.intro h2{font-size:30px;text-transform:uppercase;color:#fff}
+.overlay.intro p{color:#fff;font-size:16px;max-width:32ch;line-height:1.4}
+.overlay.intro .pill{margin:0;background:rgba(0,0,0,.25);color:#fff;box-shadow:none;border:1.5px solid rgba(255,255,255,.4)}
+.overlay .btn,.solo .btn{background:#6c5ce7;color:#fff;box-shadow:0 6px 0 #4c3fc2}
+.gocard{background:#16152b;color:#fff;border-radius:28px;padding:22px 26px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;width:min(360px,100%)}
+.gocard span{font:700 16px var(--body);letter-spacing:.08em;opacity:.85}
+.gocard b{font:900 clamp(30px,9vw,44px) var(--display);line-height:1.05}
+.gocard small{font:700 14px var(--body);opacity:.75}
+.gocard.dark{width:100%;margin:6px auto 0}.wbub{margin:10px 0 8px}
+/* leaderboard rows */
+.deltas.lb li{border-radius:22px;padding:10px 16px 10px 10px;gap:12px;box-shadow:var(--shadow);border:3px solid transparent}
+.deltas.lb li.me{border-color:#ffd84d}.deltas.lb .rk{width:24px;text-align:center;font-size:18px}
+.deltas.lb b{font:800 16px var(--body)}
+.cd{font-family:var(--display);color:#fff;font-size:110px}
+.solo .huge,.solo .big{font-family:var(--display);color:#fff}

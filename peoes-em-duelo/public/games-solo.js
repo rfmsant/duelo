@@ -8,7 +8,8 @@ function fmtScore(g,v){if(v==null)return'—';
 function cmpScores(g,a,b){if(g.cmp)return g.cmp(a,b);if(a===b)return -1;return(g.better==='low'?a<b:a>b)?0:1}
 
 function runSolo(g,seed,cb){
-  app.innerHTML=`<div class="solo" style="--gg:${gradOf(g.id)}"><div class="sh"><span class="nm">${g.icon} ${esc(g.name)}</span><span class="sv" id="sv"></span><span class="tv" id="tv"></span></div><div class="sb" id="sb"></div></div>`;
+  const pl=cb.players||[];
+  app.innerHTML=`<div class="solo" style="--gg:${gradOf(g.id)}"><div class="sh">${pl.length?pl.map((p,i)=>`<div class="who">${bub(p,52,i===0?'TU':'')}<span class="pill" id="${i===0?'sv':'ov'}">—</span></div>`).join(''):`<span class="nm">${g.icon} ${esc(g.name)}</span><span class="pill" id="sv"></span>`}</div><div class="tv" id="tv"></div><div class="sb" id="sb"></div></div>`;
   const el=$('#sb');let fin=false,rafId=0;const ids=[];
   const stop=()=>{fin=true;ids.forEach(i=>{clearTimeout(i);clearInterval(i)});cancelAnimationFrame(rafId)};
   const api={el,g,rnd:rng(seed),
@@ -21,10 +22,10 @@ function runSolo(g,seed,cb){
     canvas(){const cv=document.createElement('canvas');el.appendChild(cv);const dpr=Math.min(2,devicePixelRatio||1);const r=el.getBoundingClientRect();
       cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);const c=cv.getContext('2d');c.scale(dpr,dpr);return{cv,c,W:r.width,H:r.height}},
     done(v){if(fin)return;stop();sfx('done');v=Math.round(v*1000)/1000;
-      el.insertAdjacentHTML('beforeend',`<div class="overlay"><span class="eyebrow">O teu resultado</span><div class="huge">${fmtScore(g,v)}</div><p class="hint">À espera do adversário<span class="dotsload"></span></p></div>`);
+      el.insertAdjacentHTML('beforeend',`<div class="overlay"><div class="gocard"><span>FIM DE JOGO</span><b>${fmtScore(g,v).toUpperCase()}</b></div><p class="hint">À espera do adversário<span class="dotsload"></span></p></div>`);
       cb.done(v)},
     kill:stop};
-  el.innerHTML=`<div class="overlay"><div class="huge">${g.icon}</div><h2>${esc(g.name)}</h2><p class="hint">${g.rules}</p><button class="btn" id="go">Começar</button></div>`;
+  el.innerHTML=`<div class="overlay intro"><div class="art">${g.icon}</div><h2>${esc(g.name)}</h2><p>${g.rules}</p><span class="pill">${g.cmp?'Escolha secreta':g.better==='low'?'⬇ Ganha o resultado mais baixo':'⬆ Ganha o resultado mais alto'}</span><button class="btn big" id="go">Começar</button></div>`;
   $('#go').onclick=()=>{let n=3;const cd=()=>{el.innerHTML=`<div class="cd">${n}</div>`;sfx('count')};cd();
     const i=setInterval(()=>{if(fin)return clearInterval(i);n--;if(n>0)cd();else{clearInterval(i);el.innerHTML='';sfx('go');g.play(api)}},650);ids.push(i)};
   return api;

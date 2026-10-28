@@ -67,3 +67,6 @@ function sfx(n){if(muted)return;({
   done:()=>{tone(659,.1);tone(880,.14,'sine',.16,.1)},
   win:()=>{[523,659,784,1047].forEach((f,i)=>tone(f,.15,'triangle',.16,i*.11));vib([60,40,120])},
   event:()=>{[392,523,659].forEach((f,i)=>tone(f,.12,'triangle',.12,i*.1));vib(50)}}[n]||(()=>{}))()}
+
+/* avatar bubble: pawn inside a tinted circle with a coloured ring (Playus-style avatars) */
+function bub(p,size=56,badge=''){return `<span class="bub" style="--pc:${p.color};--bs:${size}px">${badge?`<em>${badge}</em>`:''}${pawn(p.color,Math.round(size*.62))}</span>`}
