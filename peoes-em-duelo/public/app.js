@@ -22,11 +22,12 @@ function home(err){
     <input class="field" id="nm" maxlength="12" placeholder="O teu nome" value="${esc(name)}" autocomplete="off" aria-label="O teu nome">
     <button class="btn" id="mk">Criar sala</button>
     <div class="row"><input class="field code" id="cd" maxlength="4" placeholder="CÓDIGO" autocomplete="off" aria-label="Código da sala"><button class="btn ghost" id="jn" style="flex:.7">Entrar</button></div>
+    ${installHint()}
     ${Store.local?'<p class="note">Modo de teste: o Firebase ainda não está configurado, por isso o jogo só liga separadores deste browser.</p>':''}`;
   const nm=()=>{const v=$('#nm').value.trim();if(!v){$('#nm').focus();return null}ls.set('pd_name',v);return v};
   $('#mk').onclick=async()=>{const n=nm();if(!n)return;const L='ABCDEFGHJKLMNPQRSTUVWXYZ';let code;
     do{code=Array.from({length:4},()=>L[R(0,L.length-1)]).join('')}while(await Store.get('rooms/'+code));
-    await Store.set('rooms/'+code,{host:me.pid,created:Date.now(),cfg:{total:12},st:{phase:'lobby',round:0},
+    await Store.set('rooms/'+code,{host:me.pid,created:Date.now(),cfg:{total:10},st:{phase:'lobby',round:0},
       players:{[me.pid]:{name:n,color:COLORS[0],pts:0,sips:0,wins:0,duels:0,j:Date.now()}}});
     enter(code)};
   $('#jn').onclick=async()=>{const n=nm();if(!n)return;const code=$('#cd').value.trim().toUpperCase();if(code.length!==4)return home('O código tem 4 letras.');
@@ -39,12 +40,16 @@ function enter(code){me.code=code;ss.set('pd_code',code);unsub&&unsub();unsub=St
 function leave(msg){unsub&&unsub();unsub=null;room=null;me.code=null;ss.set('pd_code',null);if(active){active.kill();active=null}home(msg)}
 
 /* ---------- shared bits ---------- */
-const head=()=>`<header class="bar"><span class="eyebrow">Sala ${me.code}${room.st.round?` · Ronda ${room.st.round} de ${room.cfg.total}`:''}</span><button class="link" id="leave">Sair</button></header>`;
-const strip=()=>`<div class="strip">${players().sort((a,b)=>b.pts-a.pts||a.sips-b.sips).map(p=>`<span class="chip">${pawn(p.color,16)}${esc(p.name)} <b>${p.pts} pts · ${p.sips}🍺</b>${alOf(p.id)?'🤝':''}</span>`).join('')}</div>`;
+const head=()=>`<header class="bar"><span class="eyebrow">Sala ${me.code}${room.st.round?` · Ronda ${room.st.round} de ${room.cfg.total}`:''}</span><span><button class="link" id="mute" aria-label="Som">${muted?'🔇':'🔊'}</button> <button class="link" id="leave">Sair</button></span></header>`;
+const strip=()=>`<div class="strip">${players().sort((a,b)=>b.pts-a.pts||a.sips-b.sips).map(p=>`<${isHost()&&p.id!==me.pid?'button':'span'} class="chip" data-rm="${p.id}">${pawn(p.color,16)}${esc(p.name)} <b>${p.pts} pts · ${p.sips}🍺</b>${alOf(p.id)?'🤝':''}</${isHost()&&p.id!==me.pid?'button':'span'}>`).join('')}</div>${isHost()?'<p class="sub" style="font-size:12px">Alguém saiu? Toca duas vezes no nome para o remover.</p>':''}`;
+let rmArmed=null;function bindRemove(){app.querySelectorAll('button[data-rm]').forEach(b=>b.onclick=()=>{const id=b.dataset.rm;
+  if(rmArmed===id){rmArmed=null;removePlayer(id);return}rmArmed=id;b.innerHTML=`Remover ${esc(P(id).name)}?`;b.style.background='#ff375f';b.style.color='#fff';setTimeout(()=>{if(rmArmed===id)rmArmed=null},3000)})}
+function removePlayer(id){const st=room.st;const inDuel=id===st.a||id===st.b;Store.update(ref(),{['players/'+id]:null});
+  if(inDuel&&['event','bet','intro','play','tie'].includes(st.phase))hostNext(false,true,id)}
 const duo=()=>[P(room.st.a),P(room.st.b)];
 const vsBlock=(s=64)=>{const [A,B]=duo();return `<div class="vs"><div class="vp">${pawn(A.color,s)}<b>${esc(A.name)}</b></div><span class="vsx">VS</span><div class="vp">${pawn(B.color,s)}<b>${esc(B.name)}</b></div></div>`};
 const whereTxt=g=>g.kind==='phone'?WHERE.phone+esc(P(room.st.a).name):WHERE[g.kind];
-const bind=()=>{const l=$('#leave');if(l)l.onclick=()=>{if(isHost()&&players().length>1&&!confirmLeave())return;leave()}};
+const bind=()=>{const mu=$('#mute');if(mu)mu.onclick=()=>{muted=!muted;ls.set('pd_mute',muted);mu.textContent=muted?'🔇':'🔊';sfx('tap')};const l=$('#leave');if(l)l.onclick=()=>{if(isHost()&&players().length>1&&!confirmLeave())return;leave()}};
 let leaveArmed=0;function confirmLeave(){if(Date.now()-leaveArmed<3000)return true;leaveArmed=Date.now();const l=$('#leave');if(l)l.textContent='Toca outra vez para sair';return false}
 const amDuelist=()=>me.pid===room.st.a||me.pid===room.st.b;
 const specs=()=>players().filter(p=>p.id!==room.st.a&&p.id!==room.st.b);
@@ -55,39 +60,38 @@ function render(){
   if(active&&(st.phase!=='play'||active.key!==playKey())){active.kill();active=null}
   if(active)return;
   clearUi();
-  ({lobby:vLobby,alliance:vAlliance,intro:vIntro,bet:vBet,play:vPlay,tie:vTie,result:vResult,final:vFinal}[st.phase]||vLobby)();
-  bind();
+  ({lobby:vLobby,alliance:vEvent,event:vEvent,intro:vBet,bet:vBet,play:vPlay,tie:vTie,result:vResult,final:vFinal}[st.phase]||vLobby)();
+  bind();bindRemove();
 }
 function vLobby(){
   const ps=players(),mine=P(me.pid),used=ps.filter(p=>p.id!==me.pid).map(p=>p.color);
   app.innerHTML=`${head()}<p class="sub" style="text-align:center">Código da sala</p><div class="roomcode">${me.code}</div>
   <p class="sub" style="text-align:center">Os outros abrem o mesmo link e entram com este código.</p>
   <h2>Jogadores <small>${ps.length}/10</small></h2>
-  <ul class="plist">${ps.map(p=>`<li>${pawn(p.color,26)}<span>${esc(p.name)}</span>${p.id===room.host?'<small>ANFITRIÃO</small>':''}</li>`).join('')}</ul>
+  <ul class="plist">${ps.map(p=>`<li>${pawn(p.color,26)}<span>${esc(p.name)}</span>${p.id===room.host?'<small>ANFITRIÃO</small>':isHost()?`<button class="x" data-rm="${p.id}" aria-label="Remover">✕</button>`:''}</li>`).join('')}</ul>
   <h2>A tua cor</h2><div class="colors">${COLORS.map(c=>`<button style="--c:${c}" data-c="${c}" class="${mine.color===c?'on':''}" ${used.includes(c)?'disabled':''} aria-label="Cor"></button>`).join('')}</div>
-  ${isHost()?`<h2>Rondas</h2><div class="seg">${[8,12,16,24].map(n=>`<button class="${room.cfg.total===n?'on':''}" data-r="${n}">${n}</button>`).join('')}</div>
+  ${isHost()?`<h2>Rondas</h2><div class="seg">${[6,10,15,20].map(n=>`<button class="${room.cfg.total===n?'on':''}" data-r="${n}">${n}</button>`).join('')}</div>
     <button class="btn" id="start" ${ps.length<3?'disabled':''}>${ps.length<3?'Faltam jogadores (mínimo 3)':'Começar'}</button>`
   :`<div class="wait"><span class="dotsload">À espera que o anfitrião comece</span></div>`}`;
   app.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>Store.set(ref(`players/${me.pid}/color`),b.dataset.c));
   app.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>Store.set(ref('cfg/total'),+b.dataset.r));
   const s=$('#start');if(s)s.onclick=()=>hostNext(true);
 }
-function vAlliance(){
-  const al=room.st.newAl;const x=P(al.a),y=P(al.b);
-  app.innerHTML=`${head()}<div class="event"><span class="eyebrow">Evento especial</span><h1 class="logo sm">ALIANÇA!</h1>
-  <div class="vs">${pawn(x.color,64)}<span class="vsx">🤝</span>${pawn(y.color,64)}</div>
-  <p class="lead"><b>${esc(x.name)}</b> e <b>${esc(y.name)}</b> ficam aliados durante 3 rondas.</p><p class="sub">Quando um bebe, o outro bebe o mesmo.</p>
-  ${isHost()?'<button class="btn" id="ok" style="width:100%">Continuar</button>':''}</div>`;
-  const ok=$('#ok');if(ok)ok.onclick=()=>Store.update(ref('st'),{phase:'intro'});
-}
-function vIntro(){
-  const g=gById(room.st.game);
-  app.innerHTML=`${head()}${vsBlock()}
-  <div class="card game"><div class="gtile" style="--gg:${gradOf(g.id)}">${g.icon}</div><span class="eyebrow ink">Mini-jogo</span><h3>${g.name}</h3><p>${g.rules}</p><span class="where">📍 ${whereTxt(g)}</span></div>
-  ${isHost()?`<div class="row"><button class="btn ghost" id="swap">Outro jogo</button><button class="btn" id="tobet">Abrir apostas</button></div>`:`<div class="wait"><span class="dotsload">O anfitrião vai abrir as apostas</span></div>`}
-  ${strip()}`;
-  const sw=$('#swap');if(sw){sw.onclick=()=>{const g2=pickGame();Store.update(ref(),{'st/game':g2,'st/seed':R(1,1e9),recent:[...(room.recent||[]),g2].slice(-16)})};
-    $('#tobet').onclick=()=>{myBet=null;Store.update(ref('st'),{phase:'bet'})}}
+const EVENTS={
+  alianca:{t:'ALIANÇA!',d:(e)=>`<b>${esc(P(e.a)?.name)}</b> e <b>${esc(P(e.b)?.name)}</b> ficam aliados durante 3 rondas. Quando um bebe, o outro bebe o mesmo.`,i:'🤝'},
+  dobro:{t:'RONDA A DOBRAR',d:()=>'Nesta ronda tudo vale o dobro: pontos, goles a beber e goles a distribuir.',i:'✖️2'},
+  revanche:{t:'REVANCHE!',d:()=>'Quem perdeu o último duelo tem direito à desforra contra quem o venceu.',i:'🔁'},
+  roubo:{t:'ROUBO',d:()=>'Quem ganhar este duelo rouba 2 pontos ao líder da tabela.',i:'🦹'}};
+function vEvent(){
+  const e=room.st.ev||{type:'alianca',...(room.st.newAl||{})};const E=EVENTS[e.type];
+  app.innerHTML=`${head()}<div class="event"><span class="eyebrow">Evento especial</span><div class="evicon">${E.i}</div><h1 class="logo sm">${E.t}</h1>
+  ${e.type==='alianca'?`<div class="vs">${pawn(P(e.a).color,64)}<span class="vsx">🤝</span>${pawn(P(e.b).color,64)}</div>`:''}
+  <p class="lead">${E.d(e)}</p><div class="tbar" style="width:100%"><i id="evb" style="width:100%"></i></div>
+  ${isHost()?'<button class="btn ghost sm" id="ok">Continuar já</button>':''}</div>`;
+  const t0=room.st.evAt||Date.now(),D=5000;sfx('event');
+  const tick=()=>{const left=Math.max(0,D-(Date.now()-t0));const b=$('#evb');if(b)b.style.width=left/D*100+'%';if(left<=0&&isHost())once('ev'+room.st.round,()=>Store.update(ref('st'),{phase:'bet'}))};
+  tick();uiTimers.push(setInterval(tick,100));
+  const ok=$('#ok');if(ok)ok.onclick=()=>once('ev'+room.st.round,()=>Store.update(ref('st'),{phase:'bet'}));
 }
 function vBet(){
   const [A,B]=duo(),r=room.st.round,bets=(room.bets&&room.bets[r])||{},sp=specs();
@@ -100,10 +104,13 @@ function vBet(){
     <div class="bsel">${[A,B].map((d,i)=>`<button class="bp ${myBet.on===i?'on':''}" data-on="${i}" style="--pc:${d.color}">${pawn(d.color,44)}<b>${esc(d.name)}</b></button>`).join('')}</div>
     <div class="step"><button id="m" ${myBet.amt<=1?'disabled':''} aria-label="Menos">−</button><span>${myBet.amt}🍺</span><button id="p" ${myBet.amt>=3?'disabled':''} aria-label="Mais">+</button></div>
     <button class="btn" id="cf" ${myBet.on==null?'disabled':''}>Apostar</button>${list}`}
-  app.innerHTML=`${head()}${vsBlock(48)}<h2>Apostas</h2>${body}${isHost()?`<button class="btn ghost" id="lock">🔒 Fechar apostas e jogar</button>`:''}`;
-  app.querySelectorAll('.bp').forEach(b=>b.onclick=()=>{myBet.on=+b.dataset.on;vBet();bind()});
-  const m=$('#m');if(m){m.onclick=()=>{myBet.amt--;vBet();bind()};$('#p').onclick=()=>{myBet.amt++;vBet();bind()};$('#cf').onclick=()=>Store.set(ref(`bets/${r}/${me.pid}`),myBet)}
-  const l=$('#lock');if(l)l.onclick=()=>startPlay();
+  const g=gById(room.st.game);const evTag=room.st.ev?`<span class="where">${EVENTS[room.st.ev.type].i} ${EVENTS[room.st.ev.type].t}</span>`:'';
+  app.innerHTML=`${head()}${vsBlock(48)}<div class="card game"><div class="gtile" style="--gg:${gradOf(g.id)}">${g.icon}</div><span class="eyebrow ink">Mini-jogo · ${whereTxt(g)}</span><h3>${g.name}</h3><p>${g.rules}</p>${evTag}</div>
+  <h2>Apostas</h2>${body}${isHost()?`<div class="row"><button class="btn ghost sm" id="swap">Outro jogo</button><button class="btn ghost sm" id="lock">Jogar já</button></div><p class="sub" style="font-size:13px">O duelo começa sozinho quando todos apostarem.</p>`:''}${strip()}`;
+  const sw=$('#swap');if(sw)sw.onclick=()=>{const g2=pickGame();Store.update(ref(),{'st/game':g2,'st/seed':R(1,1e9),recent:[...(room.recent||[]),g2].slice(-16)})};
+  app.querySelectorAll('.bp').forEach(b=>b.onclick=()=>{myBet.on=+b.dataset.on;vBet();bind();bindRemove()});
+  const m=$('#m');if(m){m.onclick=()=>{myBet.amt--;vBet();bind();bindRemove()};$('#p').onclick=()=>{myBet.amt++;vBet();bind();bindRemove()};$('#cf').onclick=()=>{sfx('tap');Store.set(ref(`bets/${r}/${me.pid}`),{on:myBet.on,amt:myBet.amt})}}
+  const l=$('#lock');if(l)l.onclick=()=>once('go'+r,()=>startPlay());
 }
 function startPlay(rep){const u={'st/phase':'play','st/tStart':null};if(rep!=null){u['st/rep']=rep;u['st/seed']=R(1,1e9)}Store.update(ref(),u)}
 
@@ -123,7 +130,7 @@ function vPlay(){
   }
   if(g.kind==='phone'){
     if(me.pid===room.st.a){active={key,kill:()=>{}};const ctx=runPhone(g,A,B,w=>Store.set(ref(`win/${key}`),w));active.kill=ctx.kill;return}
-    app.innerHTML=`${head()}${vsBlock()}<div class="card game"><h3><span class="gi">${g.icon}</span>${g.name}</h3><p>${g.rules}</p><span class="where">📍 ${whereTxt(g)}</span></div><div class="wait"><span class="dotsload">A jogar no telemóvel de ${esc(A.name)}</span></div>${hostManual()}`;
+    app.innerHTML=`${head()}${vsBlock()}<div class="card game"><div class="gtile" style="--gg:${gradOf(g.id)}">${g.icon}</div><h3>${g.name}</h3><p>${g.rules}</p><span class="where">📍 ${whereTxt(g)}</span></div><div class="wait"><span class="dotsload">A jogar no telemóvel de ${esc(A.name)}</span></div>${hostManual()}`;
     bindManual();return}
   vRef(g,key);
 }
@@ -131,7 +138,7 @@ function vWatch(g,key){
   const res=(room.res&&room.res[key])||{};
   const row=p=>{const r=res[p.id]||{};const val=g.hideLive?(r.done?'✓':'…'):fmtScore(g,r.live);return `<div class="wrow">${pawn(p.color,34)}<div><b>${esc(p.name)}</b><small>${r.done?'Terminou':r.started?'A jogar':'Ainda não começou'}</small></div><span class="ws">${r.live==null&&!r.done?'—':val}</span></div>`};
   const [A,B]=duo();
-  app.innerHTML=`${head()}<div class="card game"><span class="eyebrow ink">${whereTxt(g)}</span><h3><span class="gi">${g.icon}</span>${g.name}</h3><p>${g.rules}</p></div>
+  app.innerHTML=`${head()}<div class="card game"><div class="gtile" style="--gg:${gradOf(g.id)}">${g.icon}</div><span class="eyebrow ink">${whereTxt(g)}</span><h3>${g.name}</h3><p>${g.rules}</p></div>
   <h2>Ao vivo</h2><div class="watch">${row(A)}${row(B)}</div><p class="sub">${g.better==='low'?'Ganha o resultado mais baixo.':g.cmp?'':'Ganha o resultado mais alto.'}</p>${hostManual()}${strip()}`;
   bindManual();
 }
@@ -167,13 +174,17 @@ function vTie(){
 }
 function vResult(){
   const L=room.last||{},g=gById(room.st.game),W=P(L.wid);
-  const rows=(L.lines||[]).map(l=>{const p=P(l.id);if(!p)return'';const parts=[];if(l.pts)parts.push(`<span class="v up">+${l.pts} pts</span>`);if(l.sips)parts.push(`<span class="v down">bebe ${l.sips}</span>`);if(l.give)parts.push(`<span class="v up">distribui ${l.give}</span>`);
+  const rows=(L.lines||[]).map(l=>{const p=P(l.id);if(!p)return'';const parts=[];if(l.pts)parts.push(`<span class="v ${l.pts>0?'up':'down'}">${l.pts>0?'+':''}${l.pts} pts</span>`);if(l.sips)parts.push(`<span class="v down">bebe ${l.sips}</span>`);if(l.give)parts.push(`<span class="v up">distribui ${l.give}</span>`);
     return `<li>${pawn(p.color,22)}<b>${esc(p.name)}${l.id===L.wid?' 🏆':''}</b>${parts.join(' · ')||'<span class="v zero">safo</span>'}</li>`}).join('');
   const last=room.st.round>=room.cfg.total;
   app.innerHTML=`${head()}<div class="winner">${pawn(W.color,72)}<span class="eyebrow">${g.icon} ${g.name}</span><h1>${esc(W.name)} ganhou!</h1>${L.scores?`<p class="sub">${L.scores}</p>`:''}</div>
   <ul class="deltas">${rows}</ul>${(L.notes||[]).map(n=>`<p class="sub">${n}</p>`).join('')}
-  ${isHost()?`<button class="btn" id="nx">${last?'Ver resultados finais':'Próxima ronda'}</button>`:'<div class="wait"><span class="dotsload">O anfitrião vai continuar</span></div>'}${strip()}`;
-  const nx=$('#nx');if(nx)nx.onclick=()=>hostNext();
+  <p class="sub" style="text-align:center" id="nxt">&nbsp;</p>
+  ${isHost()?`<button class="btn" id="nx">${last?'Ver resultados finais':'Próxima ronda'}</button>`:''}${strip()}`;
+  const nx=$('#nx');if(nx)nx.onclick=()=>once('nx'+room.st.round,()=>hostNext());
+  const t0=room.st.resAt||Date.now(),D=9000;if(!vResult.played||vResult.played!==room.st.round){vResult.played=room.st.round;sfx(L.wid===me.pid?'win':'done')}
+  const tick=()=>{const left=Math.ceil((D-(Date.now()-t0))/1000);const el=$('#nxt');if(el)el.textContent=left>0?`${last?'Resultados finais':'Próxima ronda'} em ${left}s`:'';
+    if(left<=0&&isHost())once('nx'+room.st.round,()=>hostNext())};tick();uiTimers.push(setInterval(tick,250));
 }
 function vFinal(){
   const ps=players();const byPts=[...ps].sort((a,b)=>b.pts-a.pts||b.wins-a.wins),bySips=[...ps].sort((a,b)=>b.sips-a.sips);
@@ -190,19 +201,24 @@ function vFinal(){
 function pickGame(){const rec=room.recent||[];let pool=GAMES.filter(g=>!rec.includes(g.id)&&g.id!==room.st.game);if(!pool.length)pool=GAMES;
   /* keep a healthy mix: mostly own-phone games */
   const roll=Math.random(),want=roll<.62?'solo':roll<.82?'ref':'phone';const sub=pool.filter(g=>g.kind===want);return pick(sub.length?sub:pool).id}
-function hostNext(first){
-  busy='';const ps=players();const round=(first?0:room.st.round)+1;
-  if(!first&&round>room.cfg.total)return Store.update(ref('st'),{phase:'final'});
+function hostNext(first,same,exclude){
+  busy='';const ps=players().filter(p=>p.id!==exclude);const round=first?1:same?room.st.round:room.st.round+1;
+  if(!first&&!same&&round>room.cfg.total)return Store.update(ref('st'),{phase:'final'});
   const sorted=shuf(ps).sort((a,b)=>a.duels-b.duels);const a=sorted[0];const prev=[room.st.a,room.st.b];
-  const b=sorted.slice(1).find(p=>!(prev.includes(p.id)&&prev.includes(a.id)))||sorted[1];const [x,y]=Math.random()<.5?[a,b]:[b,a];
-  const game=pickGame();const st={round,a:x.id,b:y.id,game,seed:R(1,1e9),rep:0,phase:'intro'};
-  const free=shuf(ps.filter(p=>!alOf(p.id)));
-  if(round%4===0&&ps.length>=4&&free.length>=2){const al={a:free[0].id,b:free[1].id,left:3};st.phase='alliance';st.newAl=al;
-    return Store.update(ref(),{st,['al/'+uid()]:al,recent:[...(room.recent||[]),game].slice(-16)})}
-  Store.update(ref(),{st,recent:[...(room.recent||[]),game].slice(-16)});
+  const b=sorted.slice(1).find(p=>!(prev.includes(p.id)&&prev.includes(a.id)))||sorted[1];let [x,y]=Math.random()<.5?[a,b]:[b,a];
+  const game=pickGame();const st={round,a:x.id,b:y.id,game,seed:R(1,1e9),rep:0,phase:'bet'};const extra={recent:[...(room.recent||[]),game].slice(-16)};if(same)extra['bets/'+round]=null;
+  if(!first&&!same&&round>=3&&round%3===0){const opts=['dobro','roubo'];const L=room.last;
+    if(L&&L.wid&&L.lid&&ps.some(p=>p.id===L.wid)&&ps.some(p=>p.id===L.lid))opts.push('revanche');
+    const free=shuf(ps.filter(p=>!alOf(p.id)));if(ps.length>=4&&free.length>=2)opts.push('alianca','alianca');
+    const type=pick(opts);st.ev={type};st.phase='event';st.evAt=Date.now();
+    if(type==='revanche'){st.a=L.lid;st.b=L.wid}
+    if(type==='alianca'){const al={a:free[0].id,b:free[1].id,left:3};st.ev={type,a:al.a,b:al.b};extra['al/'+uid()]=al}}
+  Store.update(ref(),{st,...extra});
 }
 function hostTick(){
-  const st=room.st;if(st.phase!=='play')return;const g=gById(st.game),key=playKey();
+  const st=room.st;
+  if(st.phase==='bet'){const bets=(room.bets&&room.bets[st.round])||{};if(specs().every(p=>bets[p.id]))once('go'+st.round,()=>startPlay());return}
+  if(st.phase!=='play')return;const g=gById(st.game),key=playKey();
   if(g.kind==='solo'){const r=(room.res&&room.res[key])||{};const ra=r[st.a],rb=r[st.b];
     if(ra&&rb&&ra.done&&rb.done){const w=cmpScores(g,ra.score,rb.score);if(w<0)return once('tie'+key,()=>Store.update(ref('st'),{phase:'tie'}));
       return finish(w,`${esc(P(st.a).name)}: ${fmtScore(g,ra.score)} · ${esc(P(st.b).name)}: ${fmtScore(g,rb.score)}`)}}
@@ -223,15 +239,25 @@ function finish(w,scores){
   d[wid].pts+=3;d[lid].sips+=2;pl[wid].wins++;pl[wid].duels++;pl[lid].duels++;
   const bets=(room.bets&&room.bets[st.round])||{};
   for(const [id,b] of Object.entries(bets)){if(!d[id])continue;if(ids[b.on]===wid){d[id].pts+=1;d[id].give+=b.amt}else d[id].sips+=b.amt}
-  const notes=[];const al=JSON.parse(JSON.stringify(room.al||{}));
+  const notes=[];const ev=st.ev&&st.ev.type;
+  if(ev==='dobro'){Object.values(d).forEach(x=>{x.pts*=2;x.sips*=2;x.give*=2});notes.push('✖️2 Ronda a dobrar: tudo contou o dobro.')}const al=JSON.parse(JSON.stringify(room.al||{}));
   for(const [k,x] of Object.entries(al)){if(!d[x.a]||!d[x.b]){delete al[k];continue}const t=d[x.a].sips+d[x.b].sips;
     if(t&&d[x.a].sips!==d[x.b].sips)notes.push(`🤝 ${esc(pl[x.a].name)} e ${esc(pl[x.b].name)} bebem juntos.`);if(t){d[x.a].sips=t;d[x.b].sips=t}
     x.left--;if(x.left<=0)delete al[k]}
   Object.values(d).forEach(x=>{pl[x.id].pts+=x.pts;pl[x.id].sips+=x.sips});
+  if(ev==='roubo'){const lead=Object.entries(pl).filter(([id])=>id!==wid).sort((x,y)=>y[1].pts-x[1].pts)[0];if(lead&&lead[1].pts>0){const n=Math.min(2,lead[1].pts);lead[1].pts-=n;pl[wid].pts+=n;d[wid].pts+=n;d[lead[0]].pts-=n;notes.push(`🦹 ${esc(pl[wid].name)} roubou ${n} pontos a ${esc(lead[1].name)}.`)}}
   const lines=Object.values(d).sort((x,y)=>(y.pts-x.pts)||(x.sips-y.sips));
-  Store.update(ref(),{players:pl,al:Object.keys(al).length?al:null,last:{wid,lines,notes,scores:scores||null},'st/phase':'result'});
+  Store.update(ref(),{players:pl,al:Object.keys(al).length?al:null,last:{wid,lid,lines,notes,scores:scores||null},'st/phase':'result','st/resAt':Date.now()});
 }
 
+/* add to home screen */
+let installEvt=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;const b=$('#inst');if(b)b.hidden=false});
+const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+function installHint(){if(standalone())return'';const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  setTimeout(()=>{const b=$('#inst');if(b)b.onclick=async()=>{if(!installEvt)return;installEvt.prompt();await installEvt.userChoice;installEvt=null;b.hidden=true}});
+  return ios?'<p class="note">📲 Para ficar como app: toca em <b>Partilhar</b> no Safari e depois em <b>Adicionar ao ecrã principal</b>.</p>'
+    :`<button class="btn ghost" id="inst" ${installEvt?'':'hidden'}>📲 Instalar no ecrã principal</button>`}
+if('serviceWorker' in navigator&&!Store.local)navigator.serviceWorker.register('sw.js').catch(()=>{});
 /* boot: with Firebase, sign in with a simple name + password first */
 function boot(){if(me.code){Store.get('rooms/'+me.code).then(r=>r&&r.players&&r.players[me.pid]?enter(me.code):home())}else home()}
 function login(err){

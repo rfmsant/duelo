@@ -52,3 +52,18 @@ const Store=(()=>{
     tx(p,fn){data=ls.get(KEY)||{};const v=fn(clone(getAt(p)));if(v!==undefined){setAt(p,v);commit()}return Promise.resolve()}};
 })();
 function toast(m){let t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);z-index:50;background:#ff5d73;color:#fff;border-radius:12px;padding:12px 14px;font:500 14px Rubik,sans-serif;text-align:center';document.body.appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>t.hidden=true,6000)}
+
+/* sound (Web Audio, no files) and vibration (Android only) */
+let AC=null,muted=!!ls.get('pd_mute');
+addEventListener('pointerdown',()=>{try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();else if(AC.state==='suspended')AC.resume()}catch(e){}},{capture:true});
+function tone(f,d,type='sine',v=.16,at=0){if(!AC)return;try{const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime+at;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
+function vib(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
+function sfx(n){if(muted)return;({
+  tap:()=>{tone(660,.05,'triangle',.1);vib(8)},
+  ok:()=>{tone(880,.07);tone(1320,.09,'sine',.12,.06);vib(12)},
+  bad:()=>{tone(196,.2,'square',.07);vib([40,30,40])},
+  count:()=>tone(523,.09,'sine',.14),
+  go:()=>{tone(1047,.16,'sine',.16);vib(30)},
+  done:()=>{tone(659,.1);tone(880,.14,'sine',.16,.1)},
+  win:()=>{[523,659,784,1047].forEach((f,i)=>tone(f,.15,'triangle',.16,i*.11));vib([60,40,120])},
+  event:()=>{[392,523,659].forEach((f,i)=>tone(f,.12,'triangle',.12,i*.1));vib(50)}}[n]||(()=>{}))()}

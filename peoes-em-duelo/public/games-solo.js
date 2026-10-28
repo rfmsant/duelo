@@ -15,29 +15,29 @@ function runSolo(g,seed,cb){
     t(f,ms){const i=setTimeout(()=>{if(!fin)f()},ms);ids.push(i);return i},
     iv(f,ms){const i=setInterval(()=>{if(!fin)f()},ms);ids.push(i);return i},
     loop(f){let last=performance.now();const step=now=>{if(fin)return;const dt=Math.min(.04,(now-last)/1000);last=now;if(f(dt,now)!==false)rafId=requestAnimationFrame(step)};rafId=requestAnimationFrame(step)},
-    show(v){const s=$('#sv');if(s)s.textContent=fmtScore(g,v);cb.live&&cb.live(v)},
+    show(v){const s=$('#sv');if(s)s.textContent=fmtScore(g,v);if(!g.noTick&&g.better==='high'&&v>(api._lv??0))sfx('ok');api._lv=v;cb.live&&cb.live(v)},
     tv(t){const s=$('#tv');if(s)s.textContent=t},
     timer(sec,end){let left=sec;api.tv(left+'s');api.iv(()=>{left--;api.tv(Math.max(0,left)+'s');if(left<=0)end()},1000)},
     canvas(){const cv=document.createElement('canvas');el.appendChild(cv);const dpr=Math.min(2,devicePixelRatio||1);const r=el.getBoundingClientRect();
       cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);const c=cv.getContext('2d');c.scale(dpr,dpr);return{cv,c,W:r.width,H:r.height}},
-    done(v){if(fin)return;stop();v=Math.round(v*1000)/1000;
+    done(v){if(fin)return;stop();sfx('done');v=Math.round(v*1000)/1000;
       el.insertAdjacentHTML('beforeend',`<div class="overlay"><span class="eyebrow">O teu resultado</span><div class="huge">${fmtScore(g,v)}</div><p class="hint">À espera do adversário<span class="dotsload"></span></p></div>`);
       cb.done(v)},
     kill:stop};
   el.innerHTML=`<div class="overlay"><div class="huge">${g.icon}</div><h2>${esc(g.name)}</h2><p class="hint">${g.rules}</p><button class="btn" id="go">Começar</button></div>`;
-  $('#go').onclick=()=>{let n=3;const cd=()=>el.innerHTML=`<div class="cd">${n}</div>`;cd();
-    const i=setInterval(()=>{if(fin)return clearInterval(i);n--;if(n>0)cd();else{clearInterval(i);el.innerHTML='';g.play(api)}},650);ids.push(i)};
+  $('#go').onclick=()=>{let n=3;const cd=()=>{el.innerHTML=`<div class="cd">${n}</div>`;sfx('count')};cd();
+    const i=setInterval(()=>{if(fin)return clearInterval(i);n--;if(n>0)cd();else{clearInterval(i);el.innerHTML='';sfx('go');g.play(api)}},650);ids.push(i)};
   return api;
 }
 
 /* timed answer runs (same questions for both thanks to the seed) */
-function quizRun(a,gen,secs=30){
+function quizRun(a,gen,secs=20){
   let sc=0;a.show(0);
   const next=()=>{const q=gen(a.rnd);const idx=q.opts.map((o,i)=>i);const order=q.fixed?idx:shuf(idx,a.rnd);
     a.el.innerHTML=`<div class="q">${q.q}</div><div class="opts ${q.cls||''}" style="grid-template-columns:repeat(${q.cols||2},1fr)">${order.map(i=>`<button class="opt" data-i="${i}">${q.opts[i]}</button>`).join('')}</div>`;
     let lock=false;
     a.el.querySelectorAll('.opt').forEach(o=>on(o,()=>{if(lock)return;lock=true;const ok=+o.dataset.i===q.ans;o.classList.add(ok?'ok':'bad');
-      sc=Math.max(0,sc+(ok?1:-1));a.show(sc);a.t(next,ok?220:450)}))};
+      if(!ok)sfx('bad');sc=Math.max(0,sc+(ok?1:-1));a.show(sc);a.t(next,ok?220:450)}))};
   a.timer(secs,()=>a.done(sc));next();
 }
 const CL=[['VERMELHO','#FF5D73'],['AZUL','#4D8BFF'],['VERDE','#2EE59D'],['AMARELO','#FFD23F'],['ROXO','#B98CFF'],['LARANJA','#FF9F43']];
@@ -68,10 +68,11 @@ function three3(a){if(!window.THREE)return null;const r=a.el.getBoundingClientRe
   ren.domElement.className='three';a.el.appendChild(ren.domElement);const scene=new THREE.Scene();
   scene.add(new THREE.HemisphereLight(0xffffff,0x9aa0c0,.85));const dl=new THREE.DirectionalLight(0xffffff,.85);dl.position.set(5,10,6);dl.castShadow=true;dl.shadow.mapSize.set(1024,1024);
   Object.assign(dl.shadow.camera,{left:-8,right:8,top:8,bottom:-8});scene.add(dl);scene.add(dl.target);return{ren,scene,dl,W,H}}
-const S_=(id,icon,name,better,unit,rules,play,extra={})=>Object.assign({id,icon,name,kind:'solo',better,unit,rules,play},extra);
+const NOTICK=['faixa','zig','jelly','colormem','ritmo','center'];
+const S_=(id,icon,name,better,unit,rules,play,extra={})=>Object.assign({id,icon,name,kind:'solo',better,unit,rules,play,noTick:NOTICK.includes(id)},extra);
 const SOLO=[
 /* ---- precision ---- */
-S_('jelly','🍮','Corte 50/50','high','%','Toca para cortar a gelatina ao meio. Quanto mais perto de 50/50, melhor. São 3 cortes.',a=>{
+S_('jelly','🍮','Corte 50/50','high','%','Toca para cortar a gelatina ao meio. Quanto mais perto de 50/50, melhor. São 2 cortes.',a=>{
   const {c,W,H}=a.canvas();const r=a.rnd;let cutN=0,sum=0,x=0,dir=1,state='move',pts,cols,total,minX,maxX,res=null,tShow=0;
   const cy=H*.5,base=Math.min(W,H)*.27;
   const mk=()=>{const n=10;pts=[];for(let i=0;i<n;i++){const ang=i/n*Math.PI*2,rr=base*(.62+r()*.55);pts.push([W/2+Math.cos(ang)*rr*(1+r()*.35),cy+Math.sin(ang)*rr*.9])}
@@ -85,7 +86,7 @@ S_('jelly','🍮','Corte 50/50','high','%','Toca para cortar a gelatina ao meio.
   a.el.addEventListener('pointerdown',e=>{e.preventDefault();if(state!=='move')return;let left=0;for(let i=0;i<Math.round(x);i++)left+=cols[i]||0;
     const L=left/total*100;const sc=Math.max(0,100-Math.abs(L-50)*2);res={L,sc,cx:x};sum+=sc;cutN++;a.show(sum/cutN);state='show';tShow=0});
   a.loop(dt=>{const sp=(maxX-minX)*(.9+cutN*.35);
-    if(state==='move'){x+=dir*sp*dt;if(x>maxX){x=maxX;dir=-1}if(x<minX){x=minX;dir=1}}else{tShow+=dt;if(tShow>1.4){if(cutN>=3){a.done(sum/3);return false}mk()}}
+    if(state==='move'){x+=dir*sp*dt;if(x>maxX){x=maxX;dir=-1}if(x<minX){x=minX;dir=1}}else{tShow+=dt;if(tShow>1.4){if(cutN>=2){a.done(sum/2);return false}mk()}}
     c.clearRect(0,0,W,H);
     const draw=(clipX0,clipX1,dx,col)=>{c.save();c.beginPath();c.rect(clipX0,0,clipX1-clipX0,H);c.clip();c.translate(dx,0);shape(c);
       c.fillStyle=col[0];c.fill();c.restore()};
@@ -93,20 +94,20 @@ S_('jelly','🍮','Corte 50/50','high','%','Toca para cortar a gelatina ao meio.
     else{const off=Math.min(1,tShow*4)*14;draw(0,res.cx,-off,['#ffcc00']);draw(res.cx,W,off,['#00c7be']);
       c.fillStyle='#fff';c.font='800 28px Bricolage Grotesque, sans-serif';c.textAlign='center';
       c.fillText(`${res.L.toFixed(1).replace('.',',')}% / ${(100-res.L).toFixed(1).replace('.',',')}%`,W/2,cy+base*1.55)}
-    c.fillStyle='rgba(255,255,255,.7)';c.font='600 15px Rubik, sans-serif';c.textAlign='center';c.fillText(`Corte ${Math.min(cutN+1,3)} de 3`,W/2,30)})}),
-S_('center','🎯','No Centro','high','pts','A agulha anda de um lado para o outro. Toca para a parar no verde. 6 tentativas, cada vez mais rápidas.',a=>{
-  a.el.innerHTML=`<div style="width:min(340px,90%);position:relative;height:70px"><div style="position:absolute;inset:20px 0;border-radius:12px;overflow:hidden;display:flex"><i style="flex:18;background:#ff375f"></i><i style="flex:16;background:#ff9500"></i><i style="flex:11;background:#ffcc00"></i><i style="flex:10;background:#34c759"></i><i style="flex:11;background:#ffcc00"></i><i style="flex:16;background:#ff9500"></i><i style="flex:18;background:#ff375f"></i></div><div id="nd" style="position:absolute;top:0;bottom:0;width:6px;margin-left:-3px;background:#fff;border-radius:3px;box-shadow:0 0 0 2px #22103f"></div></div><div class="big" id="pt">&nbsp;</div><p class="hint" id="ht">Tentativa 1 de 6</p>`;
+    c.fillStyle='rgba(255,255,255,.7)';c.font='600 15px Rubik, sans-serif';c.textAlign='center';c.fillText(`Corte ${Math.min(cutN+1,2)} de 2`,W/2,30)})}),
+S_('center','🎯','No Centro','high','pts','A agulha anda de um lado para o outro. Toca para a parar no verde. 4 tentativas, cada vez mais rápidas.',a=>{
+  a.el.innerHTML=`<div style="width:min(340px,90%);position:relative;height:70px"><div style="position:absolute;inset:20px 0;border-radius:12px;overflow:hidden;display:flex"><i style="flex:18;background:#ff375f"></i><i style="flex:16;background:#ff9500"></i><i style="flex:11;background:#ffcc00"></i><i style="flex:10;background:#34c759"></i><i style="flex:11;background:#ffcc00"></i><i style="flex:16;background:#ff9500"></i><i style="flex:18;background:#ff375f"></i></div><div id="nd" style="position:absolute;top:0;bottom:0;width:6px;margin-left:-3px;background:#fff;border-radius:3px;box-shadow:0 0 0 2px #22103f"></div></div><div class="big" id="pt">&nbsp;</div><p class="hint" id="ht">Tentativa 1 de 4</p>`;
   const nd=$('#nd');let p=a.rnd(),dir=1,tries=0,sum=0,paused=false;a.show(0);
   a.el.addEventListener('pointerdown',e=>{e.preventDefault();if(paused)return;paused=true;const d=Math.abs(p-.5);const s=Math.max(0,Math.round(100-d*220));sum+=s;tries++;a.show(sum);
-    $('#pt').textContent=s>=90?`${s} perfeito!`:s;$('#ht').textContent=tries<6?`Tentativa ${tries+1} de 6`:'Fim';
-    a.t(()=>{if(tries>=6)return a.done(sum);paused=false;p=a.rnd()},700)});
+    $('#pt').textContent=s>=90?`${s} perfeito!`:s;$('#ht').textContent=tries<4?`Tentativa ${tries+1} de 4`:'Fim';
+    a.t(()=>{if(tries>=4)return a.done(sum);paused=false;p=a.rnd()},700)});
   a.loop(dt=>{if(!paused){p+=dir*dt*(.8+tries*.28);if(p>1){p=1;dir=-1}if(p<0){p=0;dir=1}}nd.style.left=p*100+'%'})}),
-S_('ontime','⏱️','Na Hora Certa','low','s','Para o cronómetro exatamente no tempo pedido. 3 tentativas; soma-se o erro de cada uma.',a=>{
+S_('ontime','⏱️','Na Hora Certa','low','s','Para o cronómetro exatamente no tempo pedido. 2 tentativas; soma-se o erro de cada uma.',a=>{
   let tries=0,err=0,t0=0,running=false,target=0;
   a.el.innerHTML=`<p class="hint" id="tg"></p><div class="huge" id="clk">0,000</div><button class="bigbtn" id="b">PARA</button><p class="hint" id="rs">&nbsp;</p>`;
-  const go=()=>{target=Ri(a.rnd,20,60)/10;$('#tg').innerHTML=`Para aos <b style="color:var(--lime);font-size:22px">${target.toFixed(1).replace('.',',')} s</b> · tentativa ${tries+1} de 3`;t0=performance.now();running=true};
+  const go=()=>{target=Ri(a.rnd,20,60)/10;$('#tg').innerHTML=`Para aos <b style="color:var(--lime);font-size:22px">${target.toFixed(1).replace('.',',')} s</b> · tentativa ${tries+1} de 2`;t0=performance.now();running=true};
   on($('#b'),()=>{if(!running)return;running=false;const s=(performance.now()-t0)/1000;const e=Math.abs(s-target);err+=e;tries++;a.show(err);
-    $('#clk').textContent=s.toFixed(3).replace('.',',');$('#rs').textContent=`Erro: ${e.toFixed(3).replace('.',',')} s`;a.t(()=>tries>=3?a.done(err):go(),1100)});
+    $('#clk').textContent=s.toFixed(3).replace('.',',');$('#rs').textContent=`Erro: ${e.toFixed(3).replace('.',',')} s`;a.t(()=>tries>=2?a.done(err):go(),1100)});
   a.loop(()=>{if(running)$('#clk').textContent=((performance.now()-t0)/1000).toFixed(3).replace('.',',')});go()}),
 S_('timesup','⌛','Tempo Esgotado','low','s','O relógio desaparece ao fim de 2 segundos. Toca quando achares que passaram exatamente 8 segundos.',a=>{
   const T=8,t0=performance.now();let st=false;
@@ -147,44 +148,44 @@ S_('knife','🔪','Atira a Faca','high','pts','Toca para atirar a faca ao tronco
 /* ---- speed ---- */
 S_('speedtap','🟡','Toque Rápido','high','pts','Toca no botão o máximo de vezes em 10 segundos.',a=>{
   a.el.innerHTML=`<button class="bigbtn" id="b">TOCA!</button>`;let n=0;a.show(0);on($('#b'),()=>{n++;a.show(n)});a.timer(10,()=>a.done(n))}),
-S_('react','⚡','Reflexos','low','ms','Quando ficar verde, toca o mais depressa possível. 5 vezes; conta a média. Tocar antes do tempo dá 1 segundo de castigo.',a=>{
+S_('react','⚡','Reflexos','low','ms','Quando ficar verde, toca o mais depressa possível. 3 vezes; conta a média. Tocar antes do tempo dá 1 segundo de castigo.',a=>{
   a.el.innerHTML=`<button id="pad" style="position:absolute;inset:16px;border:0;border-radius:28px;font:800 34px var(--display);color:#22103f"></button>`;const pad=$('#pad');
   let n=0,tot=0,st='wait',t0=0,tid=0;
   const arm=()=>{st='wait';pad.style.background='#ff5d73';pad.textContent='Espera…';tid=a.t(()=>{st='go';t0=performance.now();pad.style.background='#c6ff3d';pad.textContent='TOCA!'},1100+a.rnd()*2600)};
   on(pad,()=>{if(st==='res')return;let ms;if(st==='wait'){clearTimeout(tid);ms=1000;pad.textContent='Cedo demais! +1000 ms'}else{ms=performance.now()-t0;pad.textContent=Math.round(ms)+' ms'}
-    st='res';pad.style.background='#38d9e8';n++;tot+=ms;a.show(tot/n);a.t(()=>n>=5?a.done(tot/5):arm(),900)});arm()}),
-S_('colorreflex','🟩','Reflexo de Cor','high','pts','A caixa muda de cor. Toca só quando estiver VERDE. Tocar noutra cor tira um ponto. 25 segundos.',a=>{
+    st='res';pad.style.background='#38d9e8';n++;tot+=ms;a.show(tot/n);a.t(()=>n>=3?a.done(tot/3):arm(),900)});arm()}),
+S_('colorreflex','🟩','Reflexo de Cor','high','pts','A caixa muda de cor. Toca só quando estiver VERDE. Tocar noutra cor tira um ponto. 15 segundos.',a=>{
   a.el.innerHTML=`<p class="hint">Toca só no <b style="color:#2ee59d">VERDE</b></p><button class="cbox" id="cb" style="border:0"></button>`;const cb=$('#cb');const C=['#2ee59d','#ff5d73','#ffd23f','#4d8bff','#ff9f43','#b98cff'];
   let cur=1,sc=0,used=false;a.show(0);
   const next=()=>{cur=a.rnd()<.32?0:1+Math.floor(a.rnd()*5);used=false;cb.style.background=C[cur];a.t(next,450+a.rnd()*500)};
   on(cb,()=>{if(used)return;used=true;sc=Math.max(0,sc+(cur===0?1:-1));a.show(sc);cb.animate([{transform:'scale(.92)'},{transform:'scale(1)'}],150)});
-  next();a.timer(25,()=>a.done(sc))}),
+  next();a.timer(15,()=>a.done(sc))}),
 S_('count','🔢','1-2-3','low','s','Toca nos números de 1 a 20 por ordem, o mais rápido possível. Cada engano custa 1 segundo.',a=>{
   const nums=shuf([...Array(20).keys()].map(i=>i+1),a.rnd);let nx=1,pen=0;const t0=performance.now();
   a.el.innerHTML=`<div class="g4" style="grid-template-columns:repeat(4,1fr)">${nums.map(n=>`<button data-n="${n}">${n}</button>`).join('')}</div>`;
   a.loop(()=>a.tv(((performance.now()-t0)/1000+pen).toFixed(1)+'s'));
   a.el.querySelectorAll('button').forEach(b=>on(b,()=>{if(+b.dataset.n===nx){b.classList.add('done');nx++;if(nx>20)a.done((performance.now()-t0)/1000+pen)}
     else{pen+=1;b.classList.add('miss');a.t(()=>b.classList.remove('miss'),250)}}))}),
-S_('targets','🎯','Tiro ao Alvo','high','pts','Acerta no máximo de alvos em 20 segundos. Cada vez ficam mais pequenos e rápidos.',a=>{
+S_('targets','🎯','Tiro ao Alvo','high','pts','Acerta no máximo de alvos em 15 segundos. Cada vez ficam mais pequenos e rápidos.',a=>{
   let sc=0,el0=performance.now();a.show(0);const R0=a.el.getBoundingClientRect();
   const spawn=()=>{const age=(performance.now()-el0)/1000;const s=Math.max(38,80-age*2.2);const b=document.createElement('button');b.className='tg';
     b.style.width=b.style.height=s+'px';b.style.left=a.rnd()*(R0.width-s)+'px';b.style.top=a.rnd()*(R0.height-s)+'px';a.el.appendChild(b);
     const kill=a.t(()=>b.remove(),Math.max(650,1300-age*30));on(b,()=>{clearTimeout(kill);b.remove();sc++;a.show(sc)})};
-  a.iv(spawn,520);spawn();a.timer(20,()=>a.done(sc))}),
-S_('swipe','👉','Desliza!','high','pts','Desliza o dedo na direção da seta. Se a seta for VERMELHA, desliza para o lado oposto. 25 segundos.',a=>{
+  a.iv(spawn,480);spawn();a.timer(15,()=>a.done(sc))}),
+S_('swipe','👉','Desliza!','high','pts','Desliza o dedo na direção da seta. Se a seta for VERMELHA, desliza para o lado oposto. 15 segundos.',a=>{
   const D=['↑','→','↓','←'],V=[[0,-1],[1,0],[0,1],[-1,0]];let cur,red,sc=0,sx,sy;a.show(0);
   const next=()=>{cur=Math.floor(a.rnd()*4);red=a.rnd()<.35;a.el.innerHTML=`<div class="arrow" style="color:${red?'#ff5d73':'#2ee59d'}">${D[cur]}</div><p class="hint">${red?'Vermelha: ao contrário!':'Desliza para lá'}</p>`};
   a.el.addEventListener('pointerdown',e=>{e.preventDefault();sx=e.clientX;sy=e.clientY});
   a.el.addEventListener('pointerup',e=>{if(sx==null)return;const dx=e.clientX-sx,dy=e.clientY-sy;sx=null;if(Math.hypot(dx,dy)<30)return;
     const dirI=Math.abs(dx)>Math.abs(dy)?(dx>0?1:3):(dy>0?2:0);const want=red?(cur+2)%4:cur;sc=Math.max(0,sc+(dirI===want?1:-1));a.show(sc);
     a.el.style.background=dirI===want?'rgba(46,229,157,.15)':'rgba(255,93,115,.2)';a.t(()=>a.el.style.background='',150);next()});
-  next();a.timer(25,()=>a.done(sc))}),
-S_('piano','🎹','Piano','high','pts','Toca só nas teclas pretas da fila de baixo, por ordem. Uma tecla branca e acabou. 20 segundos.',a=>{
+  next();a.timer(15,()=>a.done(sc))}),
+S_('piano','🎹','Piano','high','pts','Toca só nas teclas pretas da fila de baixo, por ordem. Uma tecla branca e acabou. 15 segundos.',a=>{
   const rows=[];const add=()=>rows.push(Math.floor(a.rnd()*4));for(let i=0;i<5;i++)add();let sc=0,over=false;a.show(0);
   const draw=()=>{a.el.innerHTML=`<div class="piano">${rows.slice(0,5).map((k,ri)=>`<div class="pr">${[0,1,2,3].map(i=>`<button data-r="${ri}" data-i="${i}" class="${i===k?'k':''}"></button>`).join('')}</div>`).join('')}</div>`;
     a.el.querySelectorAll('button').forEach(b=>on(b,()=>{if(over)return;if(+b.dataset.r!==0)return;
       if(+b.dataset.i===rows[0]){rows.shift();add();sc++;a.show(sc);draw()}else{over=true;b.classList.add('miss');a.t(()=>a.done(sc),700)}}))};
-  draw();a.timer(20,()=>{over=true;a.done(sc)})}),
+  draw();a.timer(15,()=>{over=true;a.done(sc)})}),
 /* ---- memory ---- */
 S_('memnum','🧠','Memória de Números','high','pts','Decora o número e escreve-o. Cada vez tem mais um algarismo. Um erro e acabou.',a=>{
   let L=3,sc=0;a.show(0);
@@ -194,11 +195,11 @@ S_('memnum','🧠','Memória de Números','high','pts','Decora o número e escre
       a.el.querySelectorAll('[data-k]').forEach(b=>on(b,()=>{const k=b.dataset.k;if(k==='del')e=e.slice(0,-1);else if(k!=='ok'&&e.length<L)e+=k;$('#en').textContent=e||' ';
         if(k==='ok'||e.length===L){if(e===num){sc=L;a.show(sc);L++;a.t(round,350)}else{$('#en').innerHTML=`<span style="color:var(--bad)">${e}</span> → ${num}`;a.t(()=>a.done(sc),1400)}}}))},900+L*350)};
   round()}),
-S_('colormem','🎨','Memória de Cor','high','%','Decora a cor e depois recria-a com as barras. São 3 cores; conta a média da semelhança.',a=>{
+S_('colormem','🎨','Memória de Cor','high','%','Decora a cor e depois recria-a com as barras. São 2 cores; conta a média da semelhança.',a=>{
   let n=0,sum=0;a.show(0);
   const hsl2rgb=(h,s,l)=>{s/=100;l/=100;const k=i=>(i+h/30)%12,f=i=>l-s*Math.min(l,1-l)*Math.max(-1,Math.min(k(i)-3,9-k(i),1));return[f(0)*255,f(8)*255,f(4)*255]};
   const round=()=>{const T=[Math.floor(a.rnd()*360),40+Math.floor(a.rnd()*55),30+Math.floor(a.rnd()*45)];
-    a.el.innerHTML=`<p class="hint">Decora esta cor (${n+1} de 3)</p><div class="swatch" style="background:hsl(${T[0]} ${T[1]}% ${T[2]}%)"></div>`;
+    a.el.innerHTML=`<p class="hint">Decora esta cor (${n+1} de 2)</p><div class="swatch" style="background:hsl(${T[0]} ${T[1]}% ${T[2]}%)"></div>`;
     a.t(()=>{let h=180,s=50,l=50;
       a.el.innerHTML=`<p class="hint">Recria a cor</p><div class="swatch" id="sw"></div><div class="sliders"><input type="range" id="h" min="0" max="359" value="180" aria-label="Tom"><input type="range" id="s" min="0" max="100" value="50" aria-label="Saturação"><input type="range" id="l" min="0" max="100" value="50" aria-label="Luz"></div><button class="btn" id="ok">Confirmar</button>`;
       const upd=()=>{h=+$('#h').value;s=+$('#s').value;l=+$('#l').value;$('#sw').style.background=`hsl(${h} ${s}% ${l}%)`;
@@ -207,7 +208,7 @@ S_('colormem','🎨','Memória de Cor','high','%','Decora a cor e depois recria-
       ['h','s','l'].forEach(id=>$('#'+id).addEventListener('input',upd));upd();
       $('#ok').onclick=()=>{const p=hsl2rgb(...T),q=hsl2rgb(h,s,l);const d=Math.hypot(p[0]-q[0],p[1]-q[1],p[2]-q[2]);const acc=Math.max(0,100-d/2.2);sum+=acc;n++;a.show(sum/n);
         a.el.innerHTML=`<div class="row" style="width:min(300px,100%)"><div class="swatch" style="background:hsl(${T[0]} ${T[1]}% ${T[2]}%)"></div><div class="swatch" style="background:hsl(${h} ${s}% ${l}%)"></div></div><div class="big">${acc.toFixed(1).replace('.',',')}%</div>`;
-        a.t(()=>n>=3?a.done(sum/3):round(),1300)}},2600)};
+        a.t(()=>n>=2?a.done(sum/2):round(),1300)}},2600)};
   round()}),
 S_('grid','🟨','Grelha','high','pts','Decora os quadrados que acendem e toca neles. Cada nível tem mais quadrados. Um erro e acabou.',a=>{
   let lvl=0;a.show(0);
@@ -254,7 +255,7 @@ S_('flap','🐤','Flap','high','pts','Toca para voar. Passa entre os pilares sem
       if(y>H-14||y<0)over=true;if(over)a.t(()=>a.done(sc),800)}
     c.clearRect(0,0,W,H);pipes.forEach(p=>{c.fillStyle='#ffb020';c.fillRect(p.x,0,60,p.gy);c.fillRect(p.x,p.gy+gap,60,H);c.fillStyle='#e08a00';c.fillRect(p.x+44,0,16,p.gy);c.fillRect(p.x+44,p.gy+gap,16,H)});
     c.beginPath();c.arc(x0,y,14,0,Math.PI*2);c.fillStyle='#fff';c.fill()})}),
-S_('snake','🐍','Cobra','high','pts','Desliza para mudar de direção e come as maçãs. Não batas nas paredes nem em ti. 60 segundos.',a=>{
+S_('snake','🐍','Cobra','high','pts','Desliza para mudar de direção e come as maçãs. Não batas nas paredes nem em ti. 35 segundos.',a=>{
   const {c,W,H}=a.canvas();const N=14,cs=Math.floor(Math.min(W-20,H-20)/N),ox=(W-cs*N)/2,oy=(H-cs*N)/2;
   let sn=[[5,7],[4,7],[3,7]],d=[1,0],nd=[1,0],food,sc=0,acc=0,over=false,sx,sy;a.show(0);
   const place=()=>{do{food=[Math.floor(a.rnd()*N),Math.floor(a.rnd()*N)]}while(sn.some(s=>s[0]===food[0]&&s[1]===food[1]))};place();
@@ -268,7 +269,7 @@ S_('snake','🐍','Cobra','high','pts','Desliza para mudar de direção e come a
     c.clearRect(0,0,W,H);c.fillStyle='rgba(0,0,0,.22)';c.fillRect(ox,oy,cs*N,cs*N);
     c.fillStyle='#ffd23f';c.beginPath();c.arc(ox+food[0]*cs+cs/2,oy+food[1]*cs+cs/2,cs*.38,0,Math.PI*2);c.fill();
     sn.forEach((s,i)=>{c.fillStyle=i?'#38d9e8':'#7cf5ff';c.fillRect(ox+s[0]*cs+1,oy+s[1]*cs+1,cs-2,cs-2)})});
-  a.timer(60,()=>{over=true;a.done(sc)})}),
+  a.timer(35,()=>{over=true;a.done(sc)})}),
 S_('zig','〰️','Zigue-Zague','high','pts','A bola anda sozinha. Toca para mudar de direção e não saias da pista.',a=>{
   const {c,W,H}=a.canvas();const w=46,m=w;let nodes=[[W/2,0]],dirN=1;
   const ext=()=>{while(nodes[nodes.length-1][1]<by+H*2){const [x,y]=nodes[nodes.length-1];let L=50+a.rnd()*150;const room=dirN>0?W-m-x:x-m;L=Math.max(30,Math.min(L,room));nodes.push([x+dirN*L,y+L]);dirN=-dirN}};
@@ -331,9 +332,9 @@ S_('faixa','🚗','Faixa Rápida','high','pts','Toca na metade ESQUERDA ou DIREI
       if(cars.some(g=>Math.abs(g.position.x-me_.position.x)<1.25&&Math.abs(g.position.z)<2.2)){over=true;me_.rotation.y=.6;a.t(()=>a.done(Math.floor(dist/4)),900)}
       a.show(Math.floor(dist/4));if(dist>300)hint.style.opacity=.25}
     ren.render(scene,cam)})}),
-S_('ritmo','🥁','Ritmo','high','%','O anel encolhe até ao círculo: toca no momento exato em que encaixa. São 16 batidas; conta a precisão média.',a=>{
+S_('ritmo','🥁','Ritmo','high','%','O anel encolhe até ao círculo: toca no momento exato em que encaixa. São 10 batidas; conta a precisão média.',a=>{
   a.el.innerHTML=`<div id="rp" style="position:relative;width:220px;height:220px"><div style="position:absolute;inset:60px;border-radius:50%;background:#ffd23f;box-shadow:0 0 0 8px rgba(255,210,63,.25)"></div><div id="rr" style="position:absolute;inset:60px;border-radius:50%;border:6px solid #fff;opacity:0"></div></div><div class="big" id="rf">&nbsp;</div><p class="hint">Toca em qualquer sítio do ecrã</p>`;
-  const N=16,ivl=620,lead=1300,t0=performance.now()+lead;const beats=Array.from({length:N},(_,k)=>t0+k*ivl);const got=new Array(N).fill(null);let ac=null;
+  const N=10,ivl=600,lead=1300,t0=performance.now()+lead;const beats=Array.from({length:N},(_,k)=>t0+k*ivl);const got=new Array(N).fill(null);let ac=null;
   try{ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}
   const beep=(at)=>{if(!ac)return;const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=880;g.gain.value=.0001;o.connect(g);g.connect(ac.destination);const t=ac.currentTime+Math.max(0,(at-performance.now())/1000);
     g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.09);o.start(t);o.stop(t+.1)};
@@ -345,7 +346,7 @@ S_('ritmo','🥁','Ritmo','high','%','O anel encolhe até ao círculo: toca no m
     if(nx<0){if(now>beats[N-1]+400){a.done(avg());return false}rr.style.opacity=0;return}
     const p=(beats[nx]-now)/ivl;rr.style.opacity=p<1.05&&p>-.3?1:0;rr.style.transform=`scale(${1+Math.max(-.2,p)*1.6})`;
     beats.forEach((b,i)=>{if(got[i]==null&&now>b+300)got[i]=0})})}),
-S_('basket','🏀','Basquetebol','high','pts','Arrasta o dedo para cima para lançar: para o lado aponta, o comprimento dá força. O cesto mexe-se. O máximo de cestos em 30 segundos.',a=>{
+S_('basket','🏀','Basquetebol','high','pts','Arrasta o dedo para cima para lançar: para o lado aponta, o comprimento dá força. O cesto mexe-se. O máximo de cestos em 20 segundos.',a=>{
   const T=three3(a);if(!T)return a.done(0);const {scene,ren,W,H}=T;const cam=new THREE.PerspectiveCamera(55,W/H,.1,100);cam.position.set(0,1.8,3.4);cam.lookAt(0,2.5,-5);
   const std=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.55},o));
   const floor=new THREE.Mesh(new THREE.PlaneGeometry(30,30),std(0xd9a066));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
@@ -375,15 +376,15 @@ S_('basket','🏀','Basquetebol','high','pts','Arrasta o dedo para cima para lan
       if(p.y<.24){p.y=.24;v.y=-v.y*.55;v.x*=.8;v.z*=.8;bounces++}
       if(bounces>2||age>3.2||Math.abs(p.x)>6){live=false;p.copy(P0);hint.style.opacity=.9}}
     ball.position.copy(p);ren.render(scene,cam)});
-  a.timer(30,()=>a.done(sc))}),
-S_('soma10','🔟','Soma 10','high','pts','Toca em dois números que somem 10. Os pares certos dão ponto e são trocados por novos; um par errado tira um ponto. 30 segundos.',a=>{
+  a.timer(20,()=>a.done(sc))}),
+S_('soma10','🔟','Soma 10','high','pts','Toca em dois números que somem 10. Os pares certos dão ponto e são trocados por novos; um par errado tira um ponto. 20 segundos.',a=>{
   let g=Array.from({length:16},()=>Ri(a.rnd,1,9)),sel=null,sc=0;a.show(0);
   const fix=()=>{const has=g.some((x,i)=>g.some((y,j)=>i!==j&&x+y===10));if(!has){const i=Ri(a.rnd,0,15);let j=(i+1+Ri(a.rnd,0,14))%16;g[j]=10-g[i]}};fix();
   const draw=()=>{a.el.innerHTML=`<p class="hint">Faz 10 com dois números</p><div class="g4">${g.map((n,i)=>`<button data-i="${i}" class="${sel===i?'lit':''}">${n}</button>`).join('')}</div>`;
     a.el.querySelectorAll('[data-i]').forEach(b=>on(b,()=>{const i=+b.dataset.i;if(sel==null){sel=i;draw();return}if(sel===i){sel=null;draw();return}
       if(g[sel]+g[i]===10){sc++;g[sel]=Ri(a.rnd,1,9);g[i]=Ri(a.rnd,1,9);fix()}else{sc=Math.max(0,sc-1);b.classList.add('miss')}sel=null;a.show(sc);a.t(draw,g[0]!=null?120:0)}))};
-  draw();a.timer(30,()=>a.done(sc))}),
-S_('vf','✅','Certo ou Errado','high','pts','Aparece uma conta já resolvida. Diz se o resultado está certo ou errado. 30 segundos; cada erro tira um ponto.',a=>quizRun(a,r=>{const op=pk(['+','−','×'],r);let x,y,v;
+  draw();a.timer(20,()=>a.done(sc))}),
+S_('vf','✅','Certo ou Errado','high','pts','Aparece uma conta já resolvida. Diz se o resultado está certo ou errado. 20 segundos; cada erro tira um ponto.',a=>quizRun(a,r=>{const op=pk(['+','−','×'],r);let x,y,v;
   if(op==='×'){x=Ri(r,3,12);y=Ri(r,3,12);v=x*y}else if(op==='+'){x=Ri(r,12,89);y=Ri(r,12,89);v=x+y}else{x=Ri(r,30,99);y=Ri(r,5,x-5);v=x-y}
   const ok=r()<.5;const shown=ok?v:v+pk([-10,-2,-1,1,2,10],r);return{q:`<div class="big">${x} ${op} ${y} = ${shown}</div>`,opts:['✓ Certo','✗ Errado'],ans:ok?0:1,fixed:true}})),
 S_('pares','🃏','Jogo dos Pares','low','s','Vira as cartas duas a duas e encontra os 8 pares. Ganha quem terminar mais depressa.',a=>{
@@ -395,25 +396,25 @@ S_('pares','🃏','Jogo dos Pares','low','s','Vira as cartas duas a duas e encon
         if(done.size===16)a.done((performance.now()-t0)/1000)}
       else{lock=true;a.t(()=>{[x,y].forEach(k=>{bs[k].textContent='';bs[k].classList.remove('lit')});open.length=0;lock=false},650)}}}))}),
 /* ---- quick-answer runs ---- */
-S_('mat','➗','Contas Rápidas','high','pts','Responde ao máximo de contas em 30 segundos. Cada erro tira um ponto.',a=>quizRun(a,r=>{const op=pk(['+','−','×'],r);let x,y,v;
+S_('mat','➗','Contas Rápidas','high','pts','Responde ao máximo de contas em 20 segundos. Cada erro tira um ponto.',a=>quizRun(a,r=>{const op=pk(['+','−','×'],r);let x,y,v;
   if(op==='×'){x=Ri(r,3,12);y=Ri(r,3,12);v=x*y}else if(op==='+'){x=Ri(r,12,89);y=Ri(r,12,89);v=x+y}else{x=Ri(r,30,99);y=Ri(r,5,x-5);v=x-y}
   const s=new Set([v]);while(s.size<4){const z=v+pk([-10,-3,-2,-1,1,2,3,10],r);if(z>=0)s.add(z)}return{q:`<div class="big">${x} ${op} ${y}</div>`,opts:[...s],ans:0}})),
-S_('cor','🖌️','Cor Certa','high','pts','Toca na cor da TINTA, não no que a palavra diz. 30 segundos.',a=>quizRun(a,r=>{const [w,ink]=shuf(CL,r);
+S_('cor','🖌️','Cor Certa','high','pts','Toca na cor da TINTA, não no que a palavra diz. 20 segundos.',a=>quizRun(a,r=>{const [w,ink]=shuf(CL,r);
   return{q:`<div class="hint">Cor da tinta?</div><div class="big" style="color:${ink[1]}">${w[0]}</div>`,opts:[ink,w,...shuf(CL.filter(x=>x!==ink&&x!==w),r).slice(0,2)].map(x=>x[0]),ans:0}})),
-S_('pontos','⚫','Conta os Pontos','high','pts','Conta os pontos e toca no número certo. 30 segundos.',a=>quizRun(a,r=>{const n=Ri(r,7,16);const cells=shuf([...Array(24).keys()],r).slice(0,n);
+S_('pontos','⚫','Conta os Pontos','high','pts','Conta os pontos e toca no número certo. 20 segundos.',a=>quizRun(a,r=>{const n=Ri(r,7,16);const cells=shuf([...Array(24).keys()],r).slice(0,n);
   const dots=cells.map(q=>`<i style="left:${(q%6)*16+Ri(r,2,7)}%;top:${Math.floor(q/6)*24+Ri(r,4,10)}%"></i>`).join('');const s=new Set([n]);while(s.size<4)s.add(n+pk([-2,-1,1,2],r));
   return{q:`<div class="dots">${dots}</div>`,opts:[...s],ans:0,cols:4}})),
-S_('intruso','👀','O Intruso','high','pts','Encontra o emoji diferente. 30 segundos.',a=>quizRun(a,r=>{const [x,y]=pk(ODD,r);const k=Ri(r,0,15);return{q:'',opts:Array.from({length:16},(_,i)=>i===k?y:x),ans:k,cols:4,cls:'e',fixed:true}})),
-S_('maior','📈','O Maior','high','pts','Toca no maior número. 30 segundos.',a=>quizRun(a,r=>{const s=new Set();while(s.size<6)s.add(Ri(r,40,99));const o=[...s];return{q:'<div class="hint">Toca no MAIOR</div>',opts:o,ans:o.indexOf(Math.max(...o)),cols:3,fixed:true}})),
-S_('quiz','❓','Quiz Relâmpago','high','pts','Cultura geral: o máximo de respostas certas em 40 segundos. Cada erro tira um ponto.',a=>{const order=shuf(QZ,a.rnd);let i=0;
-  quizRun(a,r=>{const it=order[i++%order.length];return{q:`<div class="qq">${it[0]}</div>`,opts:it.slice(1),ans:0}},40)}),
+S_('intruso','👀','O Intruso','high','pts','Encontra o emoji diferente. 20 segundos.',a=>quizRun(a,r=>{const [x,y]=pk(ODD,r);const k=Ri(r,0,15);return{q:'',opts:Array.from({length:16},(_,i)=>i===k?y:x),ans:k,cols:4,cls:'e',fixed:true}})),
+S_('maior','📈','O Maior','high','pts','Toca no maior número. 20 segundos.',a=>quizRun(a,r=>{const s=new Set();while(s.size<6)s.add(Ri(r,40,99));const o=[...s];return{q:'<div class="hint">Toca no MAIOR</div>',opts:o,ans:o.indexOf(Math.max(...o)),cols:3,fixed:true}})),
+S_('quiz','❓','Quiz Relâmpago','high','pts','Cultura geral: o máximo de respostas certas em 25 segundos. Cada erro tira um ponto.',a=>{const order=shuf(QZ,a.rnd);let i=0;
+  quizRun(a,r=>{const it=order[i++%order.length];return{q:`<div class="qq">${it[0]}</div>`,opts:it.slice(1),ans:0}},25)}),
 /* ---- classics from version 1 ---- */
-S_('faroeste','🤠','Duelo no Faroeste','low','s','Dispara só quando aparecer «FOGO!». Há palavras parecidas para te enganar. 3 duelos; soma-se o tempo. Disparar antes do tempo dá 2 segundos de castigo.',a=>{
+S_('faroeste','🤠','Duelo no Faroeste','low','s','Dispara só quando aparecer «FOGO!». Há palavras parecidas para te enganar. 2 duelos; soma-se o tempo. Disparar antes do tempo dá 2 segundos de castigo.',a=>{
   let n=0,tot=0,go=false,t0=0,shot=false;
   a.el.innerHTML=`<button id="pad" style="position:absolute;inset:16px;border:0;border-radius:28px;background:rgba(255,255,255,.22);font:800 40px var(--display);color:#fff"></button>`;const pad=$('#pad');
   const round=()=>{go=false;shot=false;const seq=['Preparar…','Apontar…',...shuf(['FOGÃO!','FOCA!','FOGUETE!','FORA!','FIGO!','FOGE!'],a.rnd).slice(0,Ri(a.rnd,0,3)),'FOGO!'];let t=0;
     seq.forEach((w,i)=>{a.t(()=>{if(shot)return;pad.textContent=w;if(i===seq.length-1){go=true;t0=performance.now()}},t);t+=900+a.rnd()*700})};
-  on(pad,()=>{if(shot)return;shot=true;const v=go?(performance.now()-t0)/1000:2;pad.textContent=go?v.toFixed(3).replace('.',',')+' s':'Cedo demais! +2 s';n++;tot+=v;a.show(tot);a.t(()=>n>=3?a.done(tot):round(),1100)});
+  on(pad,()=>{if(shot)return;shot=true;const v=go?(performance.now()-t0)/1000:2;pad.textContent=go?v.toFixed(3).replace('.',',')+' s':'Cedo demais! +2 s';n++;tot+=v;a.show(tot);a.t(()=>n>=2?a.done(tot):round(),1100)});
   round()}),
 S_('cega','🙈','Contagem às Cegas','low','off','Toca exatamente 25 vezes em 8 segundos, sem ver o contador.',a=>{let n=0;
   a.el.innerHTML=`<button class="bigbtn" id="b">?</button><p class="hint">Conta de cabeça até 25</p>`;on($('#b'),()=>n++);a.timer(8,()=>a.done(Math.abs(n-25)))}),
