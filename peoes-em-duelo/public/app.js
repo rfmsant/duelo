@@ -232,15 +232,30 @@ function finish(w,scores){
   Store.update(ref(),{players:pl,al:Object.keys(al).length?al:null,last:{wid,lines,notes,scores:scores||null},'st/phase':'result'});
 }
 
-/* boot: with Firebase, sign in with Google first (same account as Jogo do Rui) */
+/* boot: with Firebase, sign in with a simple name + password first */
 function boot(){if(me.code){Store.get('rooms/'+me.code).then(r=>r&&r.players&&r.players[me.pid]?enter(me.code):home())}else home()}
-function login(){
+function login(err){
+  const last=ls.get('pd_user')||'';
   app.innerHTML=`<div class="hero"><div class="pawnrow">${COLORS.slice(0,5).map((c,i)=>`<span style="--d:${i*.12}s">${pawn(c,50)}</span>`).join('')}</div>
-  <h1 class="logo">PEÕES<br><em>EM DUELO</em></h1><p class="tag">Entra com a tua conta Google para jogar. É a mesma do Jogo do Rui.</p></div>
-  <button class="btn" id="g">Entrar com Google</button>`;
-  $('#g').onclick=()=>{const pr=new firebase.auth.GoogleAuthProvider();Store.auth.signInWithPopup(pr).catch(e=>{if(['auth/popup-blocked','auth/operation-not-supported-in-this-environment','auth/cancelled-popup-request'].includes(e.code))Store.auth.signInWithRedirect(pr);else toast('Não deu para entrar: '+e.code)})};
+  <h1 class="logo">PEÕES<br><em>EM DUELO</em></h1><p class="tag">Entra com o teu nome de utilizador. Se for a primeira vez, a conta é criada na hora.</p></div>
+  ${err?`<p class="note" style="color:var(--bad)">${esc(err)}</p>`:''}
+  <form id="lf" style="display:flex;flex-direction:column;gap:12px">
+  <input class="field" id="lu" maxlength="20" placeholder="Nome de utilizador" autocomplete="username" autocapitalize="none" value="${esc(last)}" aria-label="Nome de utilizador">
+  <input class="field" id="lp" type="password" minlength="6" placeholder="Palavra-passe (mínimo 6)" autocomplete="current-password" aria-label="Palavra-passe">
+  <button class="btn" id="lb">Entrar</button></form>`;
+  $('#lf').onsubmit=async e=>{e.preventDefault();
+    const user=$('#lu').value.trim().toLowerCase().replace(/[^a-z0-9._-]/g,''),pw=$('#lp').value;
+    if(user.length<2)return login('O nome de utilizador precisa de pelo menos 2 letras ou números.');
+    if(pw.length<6)return login('A palavra-passe precisa de pelo menos 6 caracteres.');
+    $('#lb').disabled=true;$('#lb').textContent='A entrar…';ls.set('pd_user',user);
+    const email=user+'@peoes-em-duelo.app';
+    try{await Store.auth.signInWithEmailAndPassword(email,pw)}
+    catch(e1){
+      if(!['auth/invalid-credential','auth/user-not-found','auth/invalid-login-credentials'].includes(e1.code))return login('Não deu para entrar ('+e1.code+').');
+      try{await Store.auth.createUserWithEmailAndPassword(email,pw);if(!ls.get('pd_name'))ls.set('pd_name',user.slice(0,12))}
+      catch(e2){login(e2.code==='auth/email-already-in-use'?'Palavra-passe errada para esse nome.':'Não deu para criar a conta ('+e2.code+').')}}};
 }
 if(Store.fs){app.innerHTML='<div class="wait"><span class="dotsload">A carregar</span></div>';
   Store.auth.onAuthStateChanged(u=>{if(!u)return login();if(me.pid!==u.uid){me.pid=u.uid;ss.set('pd_pid',u.uid)}
-    if(!ls.get('pd_name')&&u.displayName)ls.set('pd_name',u.displayName.split(' ')[0].slice(0,12));if(!unsub)boot()})}
+    if(!unsub)boot()})}
 else boot();
